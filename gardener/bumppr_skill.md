@@ -9,6 +9,35 @@ Repo: https://github.com/ROCm/TheRock
 
 ---
 
+## 0. Weekly Handoff — Getting Previous Context
+
+Gardener rotation happens every **Tuesday**. When you take over, you need the previous week's filed issues as your baseline. Two sources:
+
+### 0.1 Teams: Gardening-Bump-PR channel
+
+Copy the **last triage message** from the Teams **Gardening-Bump-PR** channel. This is the most recent `Bump PR Tracker – DD Mon` message from the previous gardener. Save it locally as your reference (e.g. `previous-week-teams.md`). It contains all the existing issues from last week.
+
+### 0.2 Confluence: Bump Failure Tracking page
+
+Check the master tracking page for all historically filed issues:
+
+> **[Bump Failure Tracking by Component and Owner](https://amd.atlassian.net/wiki/spaces/MLSE/pages/1621581386/Bump+Failure+Tracking+by+Component+and+Owner)**
+
+This page has a table with every filed issue, its component, responsible engineer, and status. Cross-reference it with your Teams message — some issues may have been resolved since the last report.
+
+If you have the **Atlassian MCP plugin** configured (see README), you can query this page directly from Cursor or Claude:
+
+```
+Use the Atlassian MCP plugin to read the Confluence page:
+https://amd.atlassian.net/wiki/spaces/MLSE/pages/1621581386/Bump+Failure+Tracking+by+Component+and+Owner
+```
+
+### 0.3 Build your known-issues baseline
+
+From both sources, build a list of currently-open issues. The "Common existing issues" table in Section 1.3 below is a snapshot — **always verify against the live Confluence page and latest Teams report** because issues get resolved or new ones appear between rotations.
+
+---
+
 ## 1. Triage Workflow (step by step)
 
 ### 1.1 Gather failed job links

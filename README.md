@@ -21,6 +21,41 @@ git clone https://github.com/AmosLewis/rocm-devops-skills.git
 cd rocm-devops-skills
 ```
 
+### Weekly Handoff (every Tuesday)
+
+When you take over gardener rotation, gather previous context **before** triaging:
+
+1. **Teams**: Go to the **Gardening-Bump-PR** channel, copy the last `Bump PR Tracker` message from the previous gardener. Save it as your reference for known issues.
+2. **Confluence**: Check the master issue tracking page — [Bump Failure Tracking by Component and Owner](https://amd.atlassian.net/wiki/spaces/MLSE/pages/1621581386/Bump+Failure+Tracking+by+Component+and+Owner). Cross-reference with Teams to see which issues are resolved vs still open.
+
+### Optional: Atlassian MCP Plugin (Confluence access from AI)
+
+If you want the AI agent to directly query the Confluence tracking page, set up the [Atlassian MCP server](https://www.npmjs.com/package/@anthropic/atlassian-mcp-server):
+
+**For Cursor** — add to `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "atlassian": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/atlassian-mcp-server"],
+      "env": {
+        "ATLASSIAN_SITE_URL": "https://amd.atlassian.net",
+        "ATLASSIAN_USER_EMAIL": "<your-email>",
+        "ATLASSIAN_API_TOKEN": "<your-token>"
+      }
+    }
+  }
+}
+```
+
+**For Claude CLI** — add to `~/.claude/mcp.json` with the same config.
+
+Generate your Atlassian API token at: https://id.atlassian.com/manage-profile/security/api-tokens
+
+Once configured, the AI can directly read and update the Confluence tracking page during triage.
+
 ---
 
 ## Usage: Cursor IDE
