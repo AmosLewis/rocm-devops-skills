@@ -3,9 +3,10 @@
 For the **ROCm/rocm-libraries** and **ROCm/rocm-systems** gardener rotation, when someone says *"my PR
 is blocked, can a gardener look?"* in the gardening channel or on the PR thread.
 
-Companion skill: [`bumppr_skill.md`](bumppr_skill.md) covers the bot-generated bump PRs in
-ROCm/TheRock. This file covers everything else — human PRs blocked by CI, bypass requests, and
-post-submit reds.
+Companion skills: [`bumppr_skill.md`](bumppr_skill.md) covers the bot-generated bump PRs in
+ROCm/TheRock, and [`handover_skill.md`](handover_skill.md) covers the last day of your rotation —
+the batch post-merge sweep and the handoff artifacts. This file covers everything else: human PRs
+blocked by CI, bypass requests, and post-submit reds.
 
 **Normative policy** lives in each repo's own doc and wins over anything here:
 
@@ -32,6 +33,9 @@ numerics, performance, or component code correctness.
    same run on the same commit (§5).
 6. **Ask whether waiting fixes it** before spending a bypass, and re-pull live state right before you
    execute one (§9).
+7. **A bypass is not done when it merges.** Sweep the merge commit — that is where the evidence you
+   knowingly skipped finally shows up, and where a dropped mirror becomes visible (§9,
+   [`handover_skill.md`](handover_skill.md)).
 
 ---
 
@@ -590,10 +594,12 @@ gh api repos/$REPO/issues/comments/<id> --jq .body
 Pushing it through makes the outcome yours.
 
 ```bash
-# 1. post-submit run on the merge commit (rocm-libraries runs no heavy CI per develop push;
-#    total_count=0 is normal — the scheduled multi-arch run is the one to watch)
+# 1. post-submit runs on the merge commit. A develop push normally does dispatch a full set —
+#    measured 2026-08-10, 6 of 8 merge commits carried TheRock CI + Component CI + pre-commit +
+#    clang-tidy + Merged PR to Patch Subrepos. So total_count=0 is a FINDING, not the default:
+#    it means the push event itself was dropped, and an on:push workflow cannot be replayed.
 gh api "repos/$REPO/actions/runs?head_sha=<merge_sha>&per_page=100" --paginate \
-  --jq '.workflow_runs[]|"\(.name) \(.conclusion)"'
+  --jq '.workflow_runs[] | select(.event != "issue_comment") | "\(.event) \(.name) \(.conclusion)"'
 
 # 2. did the subrepo mirror actually happen? "success" is not proof
 gh api repos/$REPO/actions/jobs/<JID>/logs \
@@ -602,11 +608,25 @@ gh api "repos/ROCm/<subrepo>/commits?sha=develop&per_page=5" \
   --jq '.[]|"\(.sha[0:9]) \(.commit.committer.date) \(.commit.message|split("\n")[0])"'
 ```
 
+**Check whether the component mirrors at all before chasing step 2** — most do not, and the ones that
+do not will never produce a mirror run no matter how long you wait:
+
+```bash
+gh api repos/$REPO/contents/.github/repos-config.json --jq '.content' | base64 -d \
+  | jq -r '.repositories[] | "\(.category)/\(.name)\t\(.url)\tpush=\(.auto_subtree_push)"'
+# measured 2026-08-10: auto_subtree_push=false for projects/miopen, projects/hipdnn,
+# shared/origami, shared/stinkytofu and all four dnn-providers/*
+```
+
 Mirror caveats worth knowing: the apply step is guarded by a subtree-detection step, so a green run may
 have done nothing; `sha=develop` is required because the standalone repo's *default* branch may be
 years stale; `patch does not apply` means the subrepo has drifted and re-running the manual workflow
 will fail identically, since it calls the same `git apply`. Also notify any downstream PR you unblocked
 that it can rebase.
+
+For the batch version of all of this — sweeping post-merge CI across every PR you merged in a week,
+and turning the result into the handoff artifacts — see
+[`handover_skill.md`](handover_skill.md).
 
 ---
 
@@ -739,6 +759,14 @@ numerics or performance.
 17. The requester is often not the author. Read the whole thread — a reviewer asking *"do we have any
     test results?"* is a different question from *"are these failures related?"*, and answering only
     the second leaves them unanswered.
+18. **Zero workflow runs on a merge commit is a finding, not silence.** It means the push event was
+    dropped, and an `on: push` workflow cannot be replayed — so that commit gets no post-submit CI and
+    no subrepo mirror, ever.
+19. **The failing *step* is the verdict, not the failing job.** `Set up job`, `Fetch sources`,
+    `Driver / GPU sanity check` and `Run setup test environment workflow` are all zero signal without
+    opening a log. A job with `conclusion: failure` and no failed step was cancelled by a sibling.
+20. **Once the author arms auto-merge, stop.** A green run merges it with their own body and `JIRA ID`
+    intact. Starting a re-run can trip `cancel-in-progress` and kill queued shards along with it.
 
 ---
 
@@ -747,3 +775,6 @@ numerics or performance.
 See the [README](../README.md). In short: copy `commands/gr.md` into
 `<your-project>/.cursor/commands/`, copy this file where the command's `Context:` line points, then
 `/gr <PR url>`. For Claude CLI, pass this file with `--file` or copy it to `CLAUDE.md`.
+
+On the last day of your rotation, switch to `/ho`
+([`handover_skill.md`](handover_skill.md)) for the post-merge sweep and the handoff artifacts.

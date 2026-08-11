@@ -8,9 +8,14 @@ AI-assisted skills and commands for ROCm DevOps workflows. Clone this repo and p
 |-------|------|---------|-------------|
 | **Monorepo Gardener** | [`gardener/monorepo_gardener_skill.md`](gardener/monorepo_gardener_skill.md) | `/gr` | You are on the **rocm-libraries / rocm-systems** gardener rotation and someone says "my PR is blocked" or asks for a bypass |
 | **Bump PR Gardener** | [`gardener/bumppr_skill.md`](gardener/bumppr_skill.md) | `/tr` | You are triaging the twice-daily **bot bump PRs** in ROCm/TheRock |
+| **Rotation Handover** | [`gardener/handover_skill.md`](gardener/handover_skill.md) | `/ho` | It is the **last day of your gardener week** and you need the post-merge sweep, the handover doc and the Teams message |
 
-Both cover the same rotation from different ends: `/gr` is per-request triage on human PRs and
-post-submit reds, `/tr` is the scheduled bump-PR sweep. The normative policy for the role lives in
+The first two cover the same rotation from different ends: `/gr` is per-request triage on human PRs
+and post-submit reds, `/tr` is the scheduled bump-PR sweep. `/ho` closes the week: it sweeps
+post-merge CI on everything you merged, then produces the handoff artifacts in a fixed shape so the
+next gardener can start from the same baseline every rotation.
+
+The normative policy for the role lives in
 each repo's own doc and wins over anything here —
 [rocm-libraries](https://github.com/ROCm/rocm-libraries/blob/develop/docs/gardening.md),
 [rocm-systems](https://github.com/ROCm/rocm-systems/blob/develop/docs/gardening.md),
@@ -36,7 +41,13 @@ cd rocm-devops-skills
 
 ### Weekly Handoff (every Tuesday)
 
-When you take over gardener rotation, gather previous context **before** triaging.
+**If you are handing the rotation over**, run [`/ho`](gardener/handover_skill.md) on your last day:
+sweep post-merge CI on every PR you merged, then generate the handover doc and Teams message. Two
+things people forget and both are expensive — a merge commit with **zero** workflow runs is a real
+finding (a dropped push event cannot be replayed, so no post-submit CI and no subrepo mirror will
+ever run for it), and any bypass you promised publicly transfers with the rotation.
+
+**If you are taking the rotation over**, gather previous context **before** triaging.
 
 **Monorepo gardener (`/gr`)** — three things, in this order:
 
@@ -103,6 +114,7 @@ Once configured, the AI can directly read and update the Confluence tracking pag
 mkdir -p <your-project>/.cursor/commands
 cp gardener/commands/gr.md <your-project>/.cursor/commands/gr.md   # monorepo gardener
 cp gardener/commands/tr.md <your-project>/.cursor/commands/tr.md   # bump PR triage
+cp gardener/commands/ho.md <your-project>/.cursor/commands/ho.md   # end-of-rotation handover
 ```
 
 2. Copy the skill files somewhere Cursor can reference them:
@@ -111,6 +123,7 @@ cp gardener/commands/tr.md <your-project>/.cursor/commands/tr.md   # bump PR tri
 mkdir -p <your-project>/skills/gardener
 cp gardener/monorepo_gardener_skill.md <your-project>/skills/gardener/
 cp gardener/bumppr_skill.md            <your-project>/skills/gardener/
+cp gardener/handover_skill.md          <your-project>/skills/gardener/
 ```
 
 3. Update the `Context:` line in each command to point at your skill path:
@@ -224,12 +237,23 @@ tr-bump "Triage: https://github.com/ROCm/TheRock/pull/4839 https://github.com/RO
 | `<r-l>-<r-s>-teams.md` | Bullet list with issue links | Copy into Teams Gardening-Bump-PR channel |
 | `<PR>/<MMDD>-...-ci-issue.md` | GitHub issue template | Copy into GitHub "New Issue" (only for NEW failures) |
 
+**Rotation handover (`/ho`)**:
+
+| Output | Format | Purpose |
+|--------|--------|---------|
+| `MMDD-handover-week<N+1>.md` | Fixed sections: conclusion, do-these-first, open PRs, merged + post-merge verdict, issues filed, daily infra, lessons, details | Attach in the handoff channel. Only public links |
+| `MMDD-handover-week<N+1>-teams.md` | Phrases not sentences, bold verb first, no tables, ~350 words | Paste into the gardening channel |
+
 ## Examples
 
 - [`gardener/examples/pr10250-bypass/`](gardener/examples/pr10250-bypass/) — a real bypass request on
   `rocm-libraries` (Aug 10, 2026): the reply as sent, the detail held in reserve, and the tracker row
   it produced. Shows why a re-run could not clear the reds and how the coverage gap was stated rather
   than papered over.
+- [`gardener/examples/week32-handover/`](gardener/examples/week32-handover/) — a real end-of-rotation
+  handover (Aug 10, 2026) after a 15-request week. Shows the post-merge sweep finding two merge
+  commits that will never reach their standalone subrepo, and the Teams message in its final
+  341-word form.
 - [`gardener/examples/week17-0427/`](gardener/examples/week17-0427/) — a real bump PR triage
   (Apr 27, 2026) with all 9 failed jobs mapped to existing issues, plus the Teams message.
 
@@ -243,14 +267,19 @@ rocm-devops-skills/
 ├── gardener/                          # gardener rotation skills
 │   ├── monorepo_gardener_skill.md     # rocm-libraries / rocm-systems PR + post-submit triage
 │   ├── bumppr_skill.md                # TheRock bump PR triage
+│   ├── handover_skill.md              # end-of-rotation sweep + handoff artifacts
 │   ├── commands/
 │   │   ├── gr.md                      # Cursor /gr command definition
-│   │   └── tr.md                      # Cursor /tr command definition
+│   │   ├── tr.md                      # Cursor /tr command definition
+│   │   └── ho.md                      # Cursor /ho command definition
 │   └── examples/
 │       ├── pr10250-bypass/            # real bypass case
 │       │   ├── README.md
 │       │   ├── pr10250-respond.md
 │       │   └── tracker-row.md
+│       ├── week32-handover/           # real end-of-rotation handover
+│       │   ├── README.md
+│       │   └── handover-teams.md
 │       └── week17-0427/               # real bump PR triage
 │           ├── 4839-4840.md
 │           └── 4839-4840-teams.md
