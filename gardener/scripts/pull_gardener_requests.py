@@ -3,7 +3,7 @@
 Pull recent gardening requests from the Microsoft Teams web client and emit a
 markdown + JSON report, fully automated.
 
-How it works (see SKILL.md for the full rationale):
+How it works (see teams_gardener_requests_skill.md for the full rationale):
   * Connects to an already-running Chrome/Edge started with --remote-debugging-port,
     finds the authenticated Teams tab, and reads the Teams client's own IndexedDB
     caches (conversation-manager + replychain-manager). No fragile UI clicking.

@@ -27,7 +27,7 @@ live GitHub PR state, with a Teams message permalink per row.
    **Keep the Teams `[message](…)` permalink in every row** — never drop it when summarizing.
 4. Flag any row where `Tagged you = YES` first — that is a direct ask.
 5. This skill is **read-only**: it never merges, comments, or posts. Hand any row you want to act on to
-   the `monorepo-gardener` `/gr` (per-request triage) flow.
+   the [`monorepo_gardener_skill.md`](monorepo_gardener_skill.md) `/gr` (per-request triage) flow.
 6. Do not commit `report.json` / `report.md` — they contain tenant/user data and are gitignored.
 
 ## Example usage

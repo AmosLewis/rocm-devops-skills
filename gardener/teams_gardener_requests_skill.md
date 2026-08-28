@@ -9,12 +9,17 @@ gardening channels in Microsoft Teams for merge / override / force-merge / help
 requests, cross-reference each to its GitHub PR, and produce a refreshable table
 with **Teams discussion permalinks**.
 
-Companion to [`monorepo-gardener`](../monorepo-gardener/SKILL.md): this skill
-*collects and links* the requests; that skill *triages* each one (`/tr`).
+Companion to [`monorepo_gardener_skill.md`](monorepo_gardener_skill.md): this skill
+*collects and links* the requests; that skill *triages* each one (`/gr`).
 
 ## What it produces
 
-One markdown table per channel, each row = a top-level request post:
+One markdown table per channel, each row = a top-level (root) post in the window.
+**Scope note:** the script does not classify intent — it emits *every* root post in the
+look-back window, not only explicit merge/override/help asks. Some rows will be
+unrelated chatter or FYIs (no PR link, `state = —`). Use the `PR(s)` and `State`
+columns to find the actionable ones (a referenced PR that is `OPEN / BLOCKED`); rows
+with no PR are usually discussion, not a request.
 
 | Column | Meaning |
 | --- | --- |
@@ -108,7 +113,7 @@ Edit the constants at the top of `scripts/pull_gardener_requests.py`:
    fresh as messages arrive). Re-run the script whenever you want a refresh.
 2. Skim the table top-down: rows with `state = OPEN / BLOCKED` and a low reply
    count are the real work; `MERGED` / high-reply rows are usually already handled.
-3. For any row you want to act on, hand the PR to the `monorepo-gardener` `/tr`
+3. For any row you want to act on, hand the PR to the `monorepo_gardener_skill.md` `/gr`
    flow. This skill never merges, comments, or posts — it is read-only.
 
 **Always keep the Teams message link per row.** Every row carries a `[message](…)`
