@@ -9,6 +9,7 @@ AI-assisted skills and commands for ROCm DevOps workflows. Clone this repo and p
 | **Monorepo Gardener** | [`gardener/monorepo_gardener_skill.md`](gardener/monorepo_gardener_skill.md) | `/gr` | You are on the **rocm-libraries / rocm-systems** gardener rotation and someone says "my PR is blocked" or asks for a bypass |
 | **Bump PR Gardener** | [`gardener/bumppr_skill.md`](gardener/bumppr_skill.md) | `/tr` | You are triaging the twice-daily **bot bump PRs** in ROCm/TheRock |
 | **Rotation Handover** | [`gardener/handover_skill.md`](gardener/handover_skill.md) | `/ho` | It is the **last day of your gardener week** and you need the post-merge sweep, the handover doc and the Teams message |
+| **Teams Gardener Requests** | [`gardener/teams_gardener_requests_skill.md`](gardener/teams_gardener_requests_skill.md) | `/tgr` | You want to **auto-pull merge/override/help requests** from the Teams gardening channels (via Chrome CDP + IndexedDB) into a table with PR state and message permalinks |
 
 The first two cover the same rotation from different ends: `/gr` is per-request triage on human PRs
 and post-submit reds, `/tr` is the scheduled bump-PR sweep. `/ho` closes the week: it sweeps
@@ -115,6 +116,7 @@ mkdir -p <your-project>/.cursor/commands
 cp gardener/commands/gr.md <your-project>/.cursor/commands/gr.md   # monorepo gardener
 cp gardener/commands/tr.md <your-project>/.cursor/commands/tr.md   # bump PR triage
 cp gardener/commands/ho.md <your-project>/.cursor/commands/ho.md   # end-of-rotation handover
+cp gardener/commands/tgr.md <your-project>/.cursor/commands/tgr.md # teams gardener requests pull
 ```
 
 2. Copy the skill files somewhere Cursor can reference them:
@@ -268,10 +270,15 @@ rocm-devops-skills/
 │   ├── monorepo_gardener_skill.md     # rocm-libraries / rocm-systems PR + post-submit triage
 │   ├── bumppr_skill.md                # TheRock bump PR triage
 │   ├── handover_skill.md              # end-of-rotation sweep + handoff artifacts
+│   ├── teams_gardener_requests_skill.md  # auto-pull Teams gardening requests via CDP
+│   ├── scripts/
+│   │   ├── pull_gardener_requests.py  # CDP driver + gh enrichment + formatting
+│   │   └── pull_messages.js           # IndexedDB extractor injected into the Teams tab
 │   ├── commands/
 │   │   ├── gr.md                      # Cursor /gr command definition
 │   │   ├── tr.md                      # Cursor /tr command definition
-│   │   └── ho.md                      # Cursor /ho command definition
+│   │   ├── ho.md                      # Cursor /ho command definition
+│   │   └── tgr.md                     # Cursor /tgr command definition
 │   └── examples/
 │       ├── pr10250-bypass/            # real bypass case
 │       │   ├── README.md
