@@ -147,8 +147,8 @@ Before overriding, prove the required-gate failures are infra, not the diff. Run
 it works on a single PR, and even better across a set (a whole stack, or several requests at once),
 because a lane that fails across unrelated diffs cannot be caused by any one of them.
 
-```powershell
-scripts\garden_triage.ps1 -Prs 10000,10802,10396 -Repo ROCm/rocm-systems -Deep
+```bash
+python scripts/garden_triage.py --prs 10000,10802,10396 --repo ROCm/rocm-systems --deep
 ```
 
 It pulls each PR's latest **TheRock CI** run, keeps only failing **leaf** jobs (aggregators like
@@ -214,11 +214,11 @@ blocked/cannot last. Suggested verdict vocabulary:
 Build it with the helper, joining your verdicts to the latest `teams-gardener-requests` report (that
 report supplies each PR's live GitHub url + state and the Teams `l/message` permalink):
 
-```powershell
+```bash
 # verdicts.json = [{"pr","repo","requester","verdict","note"}, ...]  (your Step-0/1 findings)
-python scripts\build_verdict_report.py `
-  --verdicts verdicts.json `
-  --report scripts\report_now.json `
+python scripts/build_verdict_report.py \
+  --verdicts verdicts.json \
+  --report scripts/report_now.json \
   --md verdict_report.md
 ```
 
@@ -231,14 +231,14 @@ PRs to process — **ask before merging any** — before moving to Step 2+3.
 
 
 Use the script; it enforces the OPEN+APPROVED gate, renders the rationale comment, admin-merges, and
-verifies. **Dry-run first** (omit `-Go`) to read the comment back, then add `-Go`.
+verifies. **Dry-run first** (omit `--go`) to read the comment back, then add `--go`.
 
-```powershell
-scripts\garden_bypass_single.ps1 -Pr 10000 -Repo ROCm/rocm-systems `
-  -Unrelated 'the rocshmem reduce change' `
-  -Fails 'Linux MI455 Build (gfx125X-dcgpu) / Build Linux Packages: Fetch-sources network timeout' `
-  -Note "@author: manually verified on <runner label>" `        # optional author/owner quote
-  -Go
+```bash
+python scripts/garden_bypass_single.py 10000 --repo ROCm/rocm-systems \
+  --unrelated 'the rocshmem reduce change' \
+  --fails 'Linux MI455 Build (gfx125X-dcgpu) / Build Linux Packages: Fetch-sources network timeout' \
+  --note '@author: manually verified on <runner label>' \
+  --go
 ```
 
 The rendered comment follows the accepted **#10579 precedent** exactly:
@@ -252,16 +252,16 @@ The TheRock CI failures are only known infra issues, unrelated to <Unrelated>:
 - `<Job name>`: <reason>
 ```
 
-Pass one `-Fails 'Job: reason'` per failing required-gate lane (bullet even a single one). Wording
+Pass one `--fails 'Job: reason'` per failing required-gate lane (bullet even a single one). Wording
 rules baked in and to keep: say **code owner approval** (never name the owner), **check failures /
 job failures / errors** (never "reds"), **no em dashes**, succinct, "TheRock CI failures are **only**
 known infra issues". Post the comment **before** merging.
 
-The script **refuses** if any `-Fails` reason reads as a compile error (`static assertion`, `undefined
+The script **refuses** if any `--fails` reason reads as a compile error (`static assertion`, `undefined
 reference`, `CMake Error`, `error:`, `ld:`, "build failed") — that is the Hard rule in code. It inspects
 the reason text, not the job name (job names legitimately contain "Build"). Only if you have opened the
 build log and confirmed it genuinely died before the compiler ran (fetch/network/toolchain/runner) do
-you re-run with `-AckBuildFailureIsInfra`; otherwise route to CODEOWNERS or get a revert.
+you re-run with `--ack-build-failure-is-infra`; otherwise route to CODEOWNERS or get a revert.
 
 Equivalent by hand:
 

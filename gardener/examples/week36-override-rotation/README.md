@@ -31,14 +31,14 @@ It exercises the whole gardener loop:
    CODEOWNERS spans several owner teams and some are still auto-requested. Only `APPROVED` clears the
    review axis; `PARTIAL` / `NOT_APPROVED` / `CHANGES_REQUESTED` route to CODEOWNERS. A gardener bypass
    is for known-infra/flaky **CI only**, never for unmet code review.
-4. **Triage the reds — infra vs code.** Use common-vs-distinctive (`garden_triage.ps1 -Deep`): a lane
+4. **Triage the reds — infra vs code.** Use common-vs-distinctive (`garden_triage.py --deep`): a lane
    that fails across *unrelated* PRs is shared infra; a lane that passes on the mainstream arch
    (gfx94X/MI300) and only fails on a new/rare lane (gfx1250/MI455) is a lane/arch artifact, not the
    diff. **Read the first failing *step*, not the job conclusion.**
 5. **Apply the Hard rule to build steps.** A failure *inside the build/compile step* is presumed
    code-caused and is bypass-ineligible unless the log proves it died before the compiler ran
    (fetch/network/toolchain/runner). This is the rule the two mistakes below created.
-6. **Pick the tool by shape.** base==develop **and childless** ⇒ single ⇒ `garden_bypass_single.ps1`
+6. **Pick the tool by shape.** base==develop **and childless** ⇒ single ⇒ `garden_bypass_single.py`
    (`--admin`, gh token). Base is another PR's branch **or** it has children on its head ⇒ stacked ⇒
    `enqueue_bypass.py` (CDP `enqueue_stack`), merged bottom → top.
 7. **Prefer the cheaper path.** If the reds are already fixed on `develop`, a re-run / rebase clears
@@ -110,9 +110,9 @@ produced the rule now at the top of the skill.
 
 - **`process_merge_override_skill.md` — the Hard rule.** A failing build/compile step is never
   bypass-eligible unless the log proves it is infra; build-step failure ⇒ presumed code-caused; never
-  take the requester's/author's "unrelated" word. `garden_bypass_single.ps1` enforces it in code — it
-  refuses when a `-Fails` reason reads as a compile error unless `-AckBuildFailureIsInfra` is passed
-  after the log is confirmed infra. (Direct product of incident #1.)
+  take the requester's/author's "unrelated" word. `garden_bypass_single.py` enforces it in code — it
+  refuses when a `--fails` reason reads as a compile error unless `--ack-build-failure-is-infra` is
+  passed after the log is confirmed infra. (Direct product of incident #1.)
 - **`check_approval.py` (new).** Resolves real approval from `latestOpinionatedReviews` + outstanding
   codeowner `reviewRequests` so a blank `reviewDecision` is no longer misread as "unapproved". Verdict
   `APPROVED` / `PARTIAL` / `NOT_APPROVED` / `CHANGES_REQUESTED`; only `APPROVED` clears the review axis.
@@ -133,6 +133,6 @@ produced the rule now at the top of the skill.
 ## Files
 
 - `../../process_merge_override_skill.md` — the skill this rotation authored, Hard rule and all.
-- `../../scripts/check_approval.py`, `garden_bypass_single.ps1`, `enqueue_bypass.py`,
-  `garden_triage.ps1`, `build_verdict_report.py` — the override toolchain.
+- `../../scripts/check_approval.py`, `garden_bypass_single.py`, `enqueue_bypass.py`,
+  `garden_triage.py`, `build_verdict_report.py` — the override toolchain.
 - `../../commands/pmo.md` — the `/pmo` command entry point.

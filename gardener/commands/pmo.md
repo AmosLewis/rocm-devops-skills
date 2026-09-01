@@ -25,10 +25,10 @@ verified merge and a posted rationale.
    build failures are "unrelated" or "just script failures" — open the log and read the first error
    line. (This is why `rocm-systems#10179` reached `develop` and had to be reverted.)
 4. **Step 1 — triage.** Prove every failing *required*-gate lane is infra/flake with the
-   common-vs-distinctive method (`scripts/garden_triage.ps1 -Prs … -Deep`). A lane that fails across
+   common-vs-distinctive method (`scripts/garden_triage.py --prs … --deep`). A lane that fails across
    unrelated PRs cannot be caused by any one diff; a lane that passes on the mainstream arch and only
    fails on a new/rare lane is a lane/arch issue, not the diff.
-5. **Decide single vs stacked.** base==develop **and childless** ⇒ single ⇒ `garden_bypass_single.ps1`
+5. **Decide single vs stacked.** base==develop **and childless** ⇒ single ⇒ `garden_bypass_single.py`
    (`gh pr merge --admin`, gh token, no browser). Base is another PR's branch, **or** it has children
    on its head ⇒ stacked ⇒ `enqueue_bypass.py <PR> --go` (CDP `enqueue_stack`, authenticated Chrome on
    `:9222`), bottom → top.
