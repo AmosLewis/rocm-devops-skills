@@ -68,7 +68,7 @@ Refused (correctly not bypassed):
 | --- | --- | --- |
 | [`rocm-systems#8690`](https://github.com/ROCm/rocm-systems/pull/8690) | re-run/rebase | stale `kBlockNameMap` build break (fixed on develop); also stacked |
 | [`rocm-systems#9431`](https://github.com/ROCm/rocm-systems/pull/9431) | approval | `REVIEW_REQUIRED` - route to CODEOWNERS |
-| [`rocm-systems#9738`](https://github.com/ROCm/rocm-systems/pull/9738) | build break | real Linux compile break + not approved |
+| [`rocm-systems#9738`](https://github.com/ROCm/rocm-systems/pull/9738) | review + re-run/rebase | missing review; build failure is the stale `kBlockNameMap` break in rdc (fixed on develop), diff is `kfdtest` tests only |
 | [`rocm-systems#10085`](https://github.com/ROCm/rocm-systems/pull/10085) | partial + CI | PARTIAL approval + required gates genuinely failing |
 | [`rocm-systems#10844`](https://github.com/ROCm/rocm-systems/pull/10844) | re-run/rebase | stale `kBlockNameMap` build break (fixed on develop); diff untouched by it |
 | [`rocm-libraries#10233`](https://github.com/ROCm/rocm-libraries/pull/10233) | math CI | required Math CI genuinely failing; needs drill/rebase |

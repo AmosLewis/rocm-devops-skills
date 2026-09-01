@@ -24,7 +24,7 @@ rebase/re-run on the now-fixed `develop`, a Math CI drill, or a code-owner, not 
 | 2 | **Re-check, don't override** - review flipped to APPROVED but still CI-BLOCKED | rocm-systems [#10085](https://github.com/ROCm/rocm-systems/pull/10085) | Was PARTIAL approval; now `reviewDecision=APPROVED`. Confirm with `check_approval.py`, then it's a CI question, not an approval one - required gates still failing, drill/rebase |
 | 3 | **Rebase/re-run, do not bypass** - failures are the *stale* `kBlockNameMap` build break | rocm-systems [#10844](https://github.com/ROCm/rocm-systems/pull/10844), [#8690](https://github.com/ROCm/rocm-systems/pull/8690) | The break was fixed on develop ([#10947](https://github.com/ROCm/rocm-systems/pull/10947) revert + [#10973](https://github.com/ROCm/rocm-systems/pull/10973) reland). Neither diff touches rdc/amdsmi. Fresh CI on current develop clears them. [#8690](https://github.com/ROCm/rocm-systems/pull/8690) is also STACKED (child [#9632](https://github.com/ROCm/rocm-systems/pull/9632)) -> merge bottom-up. **Hard rule bars bypassing a compile failure.** |
 | 4 | **Route to CODEOWNERS** | rocm-systems [#9431](https://github.com/ROCm/rocm-systems/pull/9431) | `REVIEW_REQUIRED`, zero failing checks - never a bypass |
-| 5 | **Rebase onto fixed develop, do not bypass** | rocm-systems [#9738](https://github.com/ROCm/rocm-systems/pull/9738) | Real Linux `kBlockNameMap` compile break ([#10179](https://github.com/ROCm/rocm-systems/pull/10179) rerun) + not approved |
+| 5 | **Get review, then rebase/re-run - do not bypass** | rocm-systems [#9738](https://github.com/ROCm/rocm-systems/pull/9738) | Diff is `kfdtest` test sources only; the failing build step is the *stale* `kBlockNameMap` break in `projects/rdc` from [#10179](https://github.com/ROCm/rocm-systems/pull/10179) (its run predates the [#10973](https://github.com/ROCm/rocm-systems/pull/10973) fix), not caused by this PR. Real remaining blocker is **missing review** |
 | 6 | **Drill/rebase, do not bypass** | rocm-libraries [#10233](https://github.com/ROCm/rocm-libraries/pull/10233) | Required `Math CI Summary` genuinely FAILURE + coverage-floor; 6-day stale run; not infra-proven |
 | 7 | **Watch, no per-PR action** - subrepo mirror `patch does not apply` | [#10083](https://github.com/ROCm/rocm-systems/pull/10083), [#10653](https://github.com/ROCm/rocm-systems/pull/10653) (sys), [#10311](https://github.com/ROCm/rocm-libraries/pull/10311) (lib) | Repo-level mirror drift (`Generate and apply patches` / `Update Repositories in the Monorepo`). Not recoverable by re-run; owner is the mirror workflow, not the PR author |
 
@@ -36,7 +36,7 @@ rebase/re-run on the now-fixed `develop`, a Math CI drill, or a code-owner, not 
 | [rocm-systems#10844](https://github.com/ROCm/rocm-systems/pull/10844) | Papadopoulos | BLOCKED, APPROVED | TheRock CI failure = **stale** kBlockNameMap break (fixed on develop) | rebase/re-run on current develop | No (Hard rule) |
 | [rocm-systems#8690](https://github.com/ROCm/rocm-systems/pull/8690) | Hui, **stacked** (child [#9632](https://github.com/ROCm/rocm-systems/pull/9632)) | BLOCKED, APPROVED | same stale kBlockNameMap break | rebase + re-run, then merge bottom->top | No (Hard rule) |
 | [rocm-systems#9431](https://github.com/ROCm/rocm-systems/pull/9431) | Hosur | BLOCKED, REVIEW_REQUIRED | missing code-owner review | route to CODEOWNERS | No (approval) |
-| [rocm-systems#9738](https://github.com/ROCm/rocm-systems/pull/9738) | SierraGuiza, [#10179](https://github.com/ROCm/rocm-systems/pull/10179) rerun | BLOCKED, not approved | **real** Linux kBlockNameMap compile break | rebase onto fixed develop + get review | No (build break) |
+| [rocm-systems#9738](https://github.com/ROCm/rocm-systems/pull/9738) | SierraGuiza, `kfdtest` Cu-mask enablement | BLOCKED, not approved | **missing review** (build failure is the *stale* [#10179](https://github.com/ROCm/rocm-systems/pull/10179) kBlockNameMap break in rdc, not this diff) | get code-owner review, then rebase/re-run on now-fixed develop | No (needs review, not a build break) |
 | [rocm-libraries#10233](https://github.com/ROCm/rocm-libraries/pull/10233) | Kim | BLOCKED, APPROVED | required Math CI Summary FAILURE + coverage floor | drill the Math CI failure / rebase | No (required gate) |
 
 ## Merged this week - the 9 override merges (post-merge swept 2026-08-31)
@@ -114,8 +114,11 @@ open are documented above with their real blocker; none is override-eligible as 
    "those are script run failures, unrelated"; it was a real `kBlockNameMap` compile break, broke the
    RDC build on develop, was reverted ([#10947](https://github.com/ROCm/rocm-systems/pull/10947)) and relanded-with-fix ([#10973](https://github.com/ROCm/rocm-systems/pull/10973)). Open the build log,
    read the first error line. This produced the process-merge-override **Hard rule**.
-2. **A stale build break masquerades as "your PR is broken."** [#8690](https://github.com/ROCm/rocm-systems/pull/8690)/[#10844](https://github.com/ROCm/rocm-systems/pull/10844) inherited the *fixed*
-   kBlockNameMap failure from a broken base - rebase/re-run, don't bypass, don't route to owners.
+2. **A stale build break masquerades as "your PR is broken" - check *where* the build fails vs what the diff touches.** [#8690](https://github.com/ROCm/rocm-systems/pull/8690)/[#10844](https://github.com/ROCm/rocm-systems/pull/10844)/[#9738](https://github.com/ROCm/rocm-systems/pull/9738) all failed on the
+   `kBlockNameMap` static_assert in `projects/rdc/tests/rdc_tests/test_common.cc`, yet none of their diffs
+   touch rdc/amdsmi ([#9738](https://github.com/ROCm/rocm-systems/pull/9738) is `kfdtest` test sources only). That is the inherited [#10179](https://github.com/ROCm/rocm-systems/pull/10179) break,
+   now fixed on develop ([#10973](https://github.com/ROCm/rocm-systems/pull/10973)) - rebase/re-run, don't bypass, don't route to owners for it. [#8690](https://github.com/ROCm/rocm-systems/pull/8690)
+   later merged cleanly once develop was fixed, confirming the pattern.
 3. **`reviewDecision` lies - use `check_approval.py`.** [#10085](https://github.com/ROCm/rocm-systems/pull/10085) read PARTIAL then APPROVED as owner
    teams cleared; a blank/empty value is not "unapproved".
 4. **`head_sha` run queries need the FULL 40-char SHA.** A truncated SHA returns `total_count=0`,

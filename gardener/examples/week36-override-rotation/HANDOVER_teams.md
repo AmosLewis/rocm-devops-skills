@@ -9,7 +9,7 @@
 - **[#10844](https://github.com/ROCm/rocm-systems/pull/10844) (sys) - rebase/re-run, don't override.** Failure = stale kBlockNameMap build break, fixed on develop ([#10947](https://github.com/ROCm/rocm-systems/pull/10947) + [#10973](https://github.com/ROCm/rocm-systems/pull/10973)). Diff untouched by it.
 - **[#8690](https://github.com/ROCm/rocm-systems/pull/8690) (sys) - rebase/re-run, don't override.** Same stale build break. Also STACKED (child [#9632](https://github.com/ROCm/rocm-systems/pull/9632)), merge bottom->top.
 - **[#9431](https://github.com/ROCm/rocm-systems/pull/9431) (sys) - route to CODEOWNERS.** REVIEW_REQUIRED, no failing checks. Never a bypass.
-- **[#9738](https://github.com/ROCm/rocm-systems/pull/9738) (sys) - rebase onto fixed develop.** Real Linux kBlockNameMap compile break + not approved.
+- **[#9738](https://github.com/ROCm/rocm-systems/pull/9738) (sys) - get review, then rebase/re-run.** Diff is kfdtest tests only; build failure is the stale [#10179](https://github.com/ROCm/rocm-systems/pull/10179) kBlockNameMap break in rdc (fixed on develop [#10973](https://github.com/ROCm/rocm-systems/pull/10973)), not this PR. Real blocker is missing review.
 - **[#10233](https://github.com/ROCm/rocm-libraries/pull/10233) (lib) - drill Math CI / rebase.** Required Math CI Summary FAILURE + coverage floor. Not infra-proven.
 - **No action** on the 9 merged bypasses. Self-swept clean; remaining failures advisory or known infra. Re-running is wasted work.
 
