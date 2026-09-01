@@ -110,12 +110,36 @@ gh pr view $PR --repo $REPO --json state,mergeStateStatus,reviewDecision,isDraft
 > | check_approval verdict | Meaning | Bypass on review axis? |
 > | --- | --- | --- |
 > | `APPROVED` | all required owners satisfied, no changes requested | eligible -> continue |
-> | `PARTIAL` | some owners approved, **other required codeowner teams still outstanding** | **No** - route the remaining owners |
+> | `PARTIAL` | approvals exist but at least one changed file's governing CODEOWNERS rule is still unsatisfied (per-file resolution; a still-requested *same-line alternate* is **not** a PARTIAL) | **No** - route the owners of the uncovered files |
 > | `NOT_APPROVED` | `REVIEW_REQUIRED` or no standing approval | **No** - route to CODEOWNERS |
 > | `CHANGES_REQUESTED` | a reviewer's latest stance is changes-requested | **No** - hard stop |
 >
 > A gardener bypass is for known-infra/flaky **CI**, **never** for unmet code review. Only `APPROVED`
 > clears the review axis; everything else routes to CODEOWNERS regardless of the CI state.
+
+> **The false-PARTIAL trap (one approval on a multi-owner line is enough).** A CODEOWNERS line lists a
+> *set* of owners, and under GitHub semantics **one approval from anyone on the governing line satisfies
+> the code-owner requirement for that file**. GitHub still auto-requests the *other* owners on that same
+> line, and they linger in `reviewRequests` as "still requested" even though they are **not** separately
+> required. A naive "there are approvals AND still-outstanding reviewers => PARTIAL" therefore *falsely
+> blocks* a PR whose review is actually complete. `check_approval.py` now resolves this **per file**: for
+> a null-decision PARTIAL it fetches the PR's changed files + the repo `CODEOWNERS`, finds each file's
+> governing rule (**last matching pattern wins**), and upgrades to `APPROVED` only when **every** changed
+> file is already covered by an approving user-owner or a team-owner with an approving member. If any file
+> is still uncovered it stays `PARTIAL` and names the file + its owners; if a team's membership can't be
+> read it says so (verify by hand before trusting). Confirm the reasoning yourself when it matters:
+> ```bash
+> python scripts\check_approval.py $PR --repo $REPO --json   # shows the per-file "codeowners" resolution
+> gh pr view $PR --repo $REPO --json files --jq '.files[].path'   # the changed files
+> gh api repos/$REPO/contents/.github/CODEOWNERS --jq '.content' | base64 -d   # the rules (last match wins)
+> ```
+> Incident this fixes (rocm-systems **#7125**, 2026-09): every changed file was under the single line
+> `/projects/rocr-runtime/ @kentrussell @dayatsin-amd @cfreeamd @atgutier @shwetagkhatri`; dayatsin-amd
+> and cfreeamd (both on that line) approved, so review was satisfied and `reviewDecision` was null. The
+> old flat rule mislabelled it PARTIAL. (It was still correctly refused - but on the **CI axis** for a
+> real build break, not on review. Getting the axis right matters: route review problems to CODEOWNERS,
+> route CI problems per the Hard rule.) `--no-codeowners` disables the resolution if you want the raw flat
+> verdict.
 
 | `mergeStateStatus` / approval (via `check_approval.py`, not raw `reviewDecision`) | Verdict |
 | --- | --- |
@@ -206,7 +230,7 @@ blocked/cannot last. Suggested verdict vocabulary:
 | `ELIGIBLE` | OPEN + APPROVED + BLOCKED; every failing required lane proven infra/flake -> mergeable now |
 | `ELIGIBLE-after-<PR>` | stacked mid/upper PR - eligible only once its parent lands |
 | `ELIGIBLE-caveat` | infra except one distinctive lane to confirm as a known flake first |
-| `BLOCKED-approval` | `check_approval.py` != APPROVED - `NOT_APPROVED`/`PARTIAL`/`CHANGES_REQUESTED` (never trust a blank `reviewDecision`; a `PARTIAL` still has outstanding codeowner teams) -> route to CODEOWNERS, not a bypass |
+| `BLOCKED-approval` | `check_approval.py` != APPROVED - `NOT_APPROVED`/`PARTIAL`/`CHANGES_REQUESTED` (never trust a blank `reviewDecision`; a true `PARTIAL` has a changed file whose governing CODEOWNERS rule is unsatisfied per-file, not merely a still-requested same-line alternate) -> route to CODEOWNERS, not a bypass |
 | `CANNOT-buildbreak` | a real build/compile failure in the diff (Hard rule) -> never bypass |
 | `CANNOT-mathci` / other | a required non-build gate genuinely failing -> drill/rebase, not a bypass |
 | `NOT-bypass` | only advisory checks failing, or required gate still PENDING -> no override needed |
