@@ -43,7 +43,7 @@ It exercises the whole gardener loop:
    `enqueue_bypass.py` (CDP `enqueue_stack`), merged bottom → top.
 7. **Prefer the cheaper path.** If the reds are already fixed on `develop`, a re-run / rebase clears
    them at zero commit cost — a bypass is then neither needed nor allowed.
-8. **Execute, sweep, reply.** Dry-run, post the `#10579`-shape rationale, merge, verify `MERGED`,
+8. **Execute, sweep, reply.** Dry-run, post the [`#10579`](https://github.com/ROCm/rocm-systems/pull/10579)-shape rationale, merge, verify `MERGED`,
    then sweep the merge SHA (a merge commit with **zero** push runs is a dropped-event *finding*).
    Hand back the paste-ready `Merged! <comment-url>` line **with the Teams thread permalink**.
 
@@ -53,25 +53,25 @@ Merged past a failing required gate (all verified infra/flake, approved, swept c
 
 | PR | Shape | Why it was eligible |
 | --- | --- | --- |
-| `rocm-systems#9031` | single | Windows gfx1151 build = known `win_flex`/amd-mesa infra; tests common/infra |
-| `rocm-systems#9584` | single | hip-tests pass on MI300; MI455 gfx1250 invalid-image + HRR flake + Docker infra + Windows flex |
-| `rocm-systems#9696` | single | required gates green; only advisory `Core`/`Code Coverage` mi325 red |
-| `rocm-systems#10083`/`#10084` | stacked | cuid tooling; CDP `enqueue_stack` bottom→top; advisory-only reds |
-| `rocm-systems#10653` | single | flaky-test disable |
-| `rocm-systems#10803` | single | build green; only `rocgdb-cpu` Driver/GPU-sanity infra failure, unrelated to the diff |
-| `rocm-systems#10953` | single | build clean; rocprofiler-sdk timeout + container-init infra |
-| `rocm-libraries#10311` | single | merged after its required Math CI finished green |
+| [`rocm-systems#9031`](https://github.com/ROCm/rocm-systems/pull/9031) | single | Windows gfx1151 build = known `win_flex`/amd-mesa infra; tests common/infra |
+| [`rocm-systems#9584`](https://github.com/ROCm/rocm-systems/pull/9584) | single | hip-tests pass on MI300; MI455 gfx1250 invalid-image + HRR flake + Docker infra + Windows flex |
+| [`rocm-systems#9696`](https://github.com/ROCm/rocm-systems/pull/9696) | single | required gates green; only advisory `Core`/`Code Coverage` mi325 red |
+| [`rocm-systems#10083`](https://github.com/ROCm/rocm-systems/pull/10083)/[`#10084`](https://github.com/ROCm/rocm-systems/pull/10084) | stacked | cuid tooling; CDP `enqueue_stack` bottom→top; advisory-only reds |
+| [`rocm-systems#10653`](https://github.com/ROCm/rocm-systems/pull/10653) | single | flaky-test disable |
+| [`rocm-systems#10803`](https://github.com/ROCm/rocm-systems/pull/10803) | single | build green; only `rocgdb-cpu` Driver/GPU-sanity infra failure, unrelated to the diff |
+| [`rocm-systems#10953`](https://github.com/ROCm/rocm-systems/pull/10953) | single | build clean; rocprofiler-sdk timeout + container-init infra |
+| [`rocm-libraries#10311`](https://github.com/ROCm/rocm-libraries/pull/10311) | single | merged after its required Math CI finished green |
 
 Refused (correctly not bypassed):
 
 | PR | Verdict | Reason |
 | --- | --- | --- |
-| `rocm-systems#8690` | re-run/rebase | stale `kBlockNameMap` build break (fixed on develop); also stacked |
-| `rocm-systems#9431` | approval | `REVIEW_REQUIRED` — route to CODEOWNERS |
-| `rocm-systems#9738` | build break | real Linux compile break + not approved |
-| `rocm-systems#10085` | partial + CI | PARTIAL approval + required gates genuinely red |
-| `rocm-systems#10844` | re-run/rebase | stale `kBlockNameMap` build break (fixed on develop); diff untouched by it |
-| `rocm-libraries#10233` | math CI | required Math CI genuinely failing; needs drill/rebase |
+| [`rocm-systems#8690`](https://github.com/ROCm/rocm-systems/pull/8690) | re-run/rebase | stale `kBlockNameMap` build break (fixed on develop); also stacked |
+| [`rocm-systems#9431`](https://github.com/ROCm/rocm-systems/pull/9431) | approval | `REVIEW_REQUIRED` — route to CODEOWNERS |
+| [`rocm-systems#9738`](https://github.com/ROCm/rocm-systems/pull/9738) | build break | real Linux compile break + not approved |
+| [`rocm-systems#10085`](https://github.com/ROCm/rocm-systems/pull/10085) | partial + CI | PARTIAL approval + required gates genuinely red |
+| [`rocm-systems#10844`](https://github.com/ROCm/rocm-systems/pull/10844) | re-run/rebase | stale `kBlockNameMap` build break (fixed on develop); diff untouched by it |
+| [`rocm-libraries#10233`](https://github.com/ROCm/rocm-libraries/pull/10233) | math CI | required Math CI genuinely failing; needs drill/rebase |
 
 ## The mistakes — two build breaks merged on "it's unrelated"
 
@@ -79,19 +79,19 @@ Both mistakes have the **same root cause**: a *build/compile* failure was bypass
 requester's word that it was "unrelated / just script failures", without reading the build log. Both
 produced the rule now at the top of the skill.
 
-### 1. `rocm-systems#10179` — merged, broke the RDC build, reverted by Chiranjeevi
+### 1. [`rocm-systems#10179`](https://github.com/ROCm/rocm-systems/pull/10179) — merged, broke the RDC build, reverted by Chiranjeevi
 
-- **What happened.** `#10179` ("feat(amdsmi): expand `amdsmi_gpu_block_t` with new IP blocks") was
+- **What happened.** [`#10179`](https://github.com/ROCm/rocm-systems/pull/10179) ("feat(amdsmi): expand `amdsmi_gpu_block_t` with new IP blocks") was
   bypass-merged citing the author's comment *"those are some script run failures. Failures are
   unrelated."* The failing check was in fact a real compile break: expanding the enum moved
   `AMDSMI_GPU_BLOCK_LAST` but did not update `projects/rdc`, which hard-coded the old tail, tripping a
   `static_assert` in `rdc_tests/test_common.cc:62` (`kBlockNameMap needs to be updated`).
 - **Blast radius.** It landed on `develop` and broke the `dctools-core` (RDC) build for everyone,
   surfacing in Multi-Arch CI / ASAN at ~76% failure.
-- **Recovery.** **Chiranjeevi Pattigidi reverted it (`#10947`)**; tracking issue `#10949` was filed;
-  the author re-landed the expansion *with* the RDC fix in `#10973`.
+- **Recovery.** **Chiranjeevi Pattigidi reverted it ([`#10947`](https://github.com/ROCm/rocm-systems/pull/10947))**; tracking issue [`#10949`](https://github.com/ROCm/rocm-systems/issues/10949) was filed;
+  the author re-landed the expansion *with* the RDC fix in [`#10973`](https://github.com/ROCm/rocm-systems/pull/10973).
 - **Ripple.** For the rest of the rotation, any PR whose CI had run against the broken window inherited
-  the same `kBlockNameMap` red — which is exactly why `#8690` and `#10844` were **refused** (their reds
+  the same `kBlockNameMap` red — which is exactly why [`#8690`](https://github.com/ROCm/rocm-systems/pull/8690) and [`#10844`](https://github.com/ROCm/rocm-systems/pull/10844) were **refused** (their reds
   were the stale break, already fixed on develop) rather than merged. The mistake taught the fix.
 
 ### 2. A second override flagged by Rahul as a build failure
