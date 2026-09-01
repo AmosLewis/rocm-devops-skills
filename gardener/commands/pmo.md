@@ -33,7 +33,7 @@ verified merge and a posted rationale.
    on its head ⇒ stacked ⇒ `enqueue_bypass.py <PR> --go` (CDP `enqueue_stack`, authenticated Chrome on
    `:9222`), bottom → top.
 6. **Execute.** Dry-run first, post the `#10579`-shape rationale comment, then merge and verify
-   `state == MERGED`. Prefer a cheaper path when one exists — if the reds are already fixed on
+   `state == MERGED`. Prefer a cheaper path when one exists — if the job failures are already fixed on
    `develop`, a re-run / rebase clears them at zero commit cost and a bypass is neither needed nor
    allowed.
 7. **Sweep + reply.** Sweep the merge SHA (`total_count == 0` push runs is a *finding*, not silence).

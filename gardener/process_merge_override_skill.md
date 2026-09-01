@@ -37,7 +37,7 @@ to build** and blocks the merge, full stop — route it to CODEOWNERS or get it 
 - **Never take the requester's or author's word that failures are "unrelated" / "just script
   failures."** That is a claim to verify, not evidence. Open the actual build log and read the first
   error line yourself. A green "trust me" from the person asking you to merge is worth nothing against
-  a red build step.
+  a failing build step.
 - **Build-step failure ⇒ presumed code-caused.** The burden is on proving infra, not on proving code.
   If you cannot definitively show it is infra, treat it as code and refuse the override.
 - Distinguish from the log, not the conclusion: `error:`, `static assertion failed`, `undefined
@@ -126,7 +126,7 @@ gh pr view $PR --repo $REPO --json state,mergeStateStatus,reviewDecision,isDraft
 
 Only proceed when the PR is **OPEN + not draft + `check_approval.py`=APPROVED + BLOCKED by a required check**. An override
 request you were *offered* is still your call; refuse it if a cheaper path exists (a label toggle buys
-a fresh merge base at zero commit cost; half the reds may already be fixed on `develop`).
+a fresh merge base at zero commit cost; half the job failures may already be fixed on `develop`).
 
 **Enumerate the required set for that repo+branch** — it differs per repo and you must know which
 failing checks actually block:
@@ -328,7 +328,7 @@ a different repo/user. It confirms `state == MERGED` via GraphQL at the end.
    stacked path.
 8. PowerShell: `"$Var:"` is a scoped-variable parse — use `"${Var}:"`; no `&&`/`||`; set
    `$env:GH_PAGER=''`.
-9. **A red build step is never "unrelated" on the requester's say-so.** Do not take the author's/
+9. **A failing build step is never "unrelated" on the requester's say-so.** Do not take the author's/
    requester's word that build failures are infra or "script failures" — open the build log and read
    the first error line. Merging on trust is how rocm-systems #10179's `kBlockNameMap` compile break
    reached `develop` (see Hard rule at the top). Presumption for a build-step failure is code, not infra.

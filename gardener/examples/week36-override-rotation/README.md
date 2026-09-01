@@ -10,7 +10,7 @@ It exercises the whole gardener loop:
 | Skill / command | Role in this rotation |
 | --- | --- |
 | [`teams_gardener_requests_skill.md`](../../teams_gardener_requests_skill.md) (`/tgr`) | **Acquire** — pull every merge/override/help ask from both Gardening channels into a table with Teams permalinks |
-| [`monorepo_gardener_skill.md`](../../monorepo_gardener_skill.md) (`/gr`) | **Triage** — classify each blocked PR's reds into infra / code / advisory |
+| [`monorepo_gardener_skill.md`](../../monorepo_gardener_skill.md) (`/gr`) | **Triage** — classify each blocked PR's job failures into infra / code / advisory |
 | [`process_merge_override_skill.md`](../../process_merge_override_skill.md) (`/pmo`) | **Decide + execute** — verify preconditions, prove infra, merge past the required gate, sweep, reply |
 
 ## The loop, as an outline
@@ -31,7 +31,7 @@ It exercises the whole gardener loop:
    CODEOWNERS spans several owner teams and some are still auto-requested. Only `APPROVED` clears the
    review axis; `PARTIAL` / `NOT_APPROVED` / `CHANGES_REQUESTED` route to CODEOWNERS. A gardener bypass
    is for known-infra/flaky **CI only**, never for unmet code review.
-4. **Triage the reds — infra vs code.** Use common-vs-distinctive (`garden_triage.py --deep`): a lane
+4. **Triage the job failures — infra vs code.** Use common-vs-distinctive (`garden_triage.py --deep`): a lane
    that fails across *unrelated* PRs is shared infra; a lane that passes on the mainstream arch
    (gfx94X/MI300) and only fails on a new/rare lane (gfx1250/MI455) is a lane/arch artifact, not the
    diff. **Read the first failing *step*, not the job conclusion.**
@@ -41,7 +41,7 @@ It exercises the whole gardener loop:
 6. **Pick the tool by shape.** base==develop **and childless** ⇒ single ⇒ `garden_bypass_single.py`
    (`--admin`, gh token). Base is another PR's branch **or** it has children on its head ⇒ stacked ⇒
    `enqueue_bypass.py` (CDP `enqueue_stack`), merged bottom → top.
-7. **Prefer the cheaper path.** If the reds are already fixed on `develop`, a re-run / rebase clears
+7. **Prefer the cheaper path.** If the job failures are already fixed on `develop`, a re-run / rebase clears
    them at zero commit cost — a bypass is then neither needed nor allowed.
 8. **Execute, sweep, reply.** Dry-run, post the [`#10579`](https://github.com/ROCm/rocm-systems/pull/10579)-shape rationale, merge, verify `MERGED`,
    then sweep the merge SHA (a merge commit with **zero** push runs is a dropped-event *finding*).
@@ -55,8 +55,8 @@ Merged past a failing required gate (all verified infra/flake, approved, swept c
 | --- | --- | --- |
 | [`rocm-systems#9031`](https://github.com/ROCm/rocm-systems/pull/9031) | single | Windows gfx1151 build = known `win_flex`/amd-mesa infra; tests common/infra |
 | [`rocm-systems#9584`](https://github.com/ROCm/rocm-systems/pull/9584) | single | hip-tests pass on MI300; MI455 gfx1250 invalid-image + HRR flake + Docker infra + Windows flex |
-| [`rocm-systems#9696`](https://github.com/ROCm/rocm-systems/pull/9696) | single | required gates green; only advisory `Core`/`Code Coverage` mi325 red |
-| [`rocm-systems#10083`](https://github.com/ROCm/rocm-systems/pull/10083)/[`#10084`](https://github.com/ROCm/rocm-systems/pull/10084) | stacked | cuid tooling; CDP `enqueue_stack` bottom→top; advisory-only reds |
+| [`rocm-systems#9696`](https://github.com/ROCm/rocm-systems/pull/9696) | single | required gates green; only advisory `Core`/`Code Coverage` mi325 job failure |
+| [`rocm-systems#10083`](https://github.com/ROCm/rocm-systems/pull/10083)/[`#10084`](https://github.com/ROCm/rocm-systems/pull/10084) | stacked | cuid tooling; CDP `enqueue_stack` bottom→top; advisory-only job failures |
 | [`rocm-systems#10653`](https://github.com/ROCm/rocm-systems/pull/10653) | single | flaky-test disable |
 | [`rocm-systems#10803`](https://github.com/ROCm/rocm-systems/pull/10803) | single | build green; only `rocgdb-cpu` Driver/GPU-sanity infra failure, unrelated to the diff |
 | [`rocm-systems#10953`](https://github.com/ROCm/rocm-systems/pull/10953) | single | build clean; rocprofiler-sdk timeout + container-init infra |
@@ -69,7 +69,7 @@ Refused (correctly not bypassed):
 | [`rocm-systems#8690`](https://github.com/ROCm/rocm-systems/pull/8690) | re-run/rebase | stale `kBlockNameMap` build break (fixed on develop); also stacked |
 | [`rocm-systems#9431`](https://github.com/ROCm/rocm-systems/pull/9431) | approval | `REVIEW_REQUIRED` — route to CODEOWNERS |
 | [`rocm-systems#9738`](https://github.com/ROCm/rocm-systems/pull/9738) | build break | real Linux compile break + not approved |
-| [`rocm-systems#10085`](https://github.com/ROCm/rocm-systems/pull/10085) | partial + CI | PARTIAL approval + required gates genuinely red |
+| [`rocm-systems#10085`](https://github.com/ROCm/rocm-systems/pull/10085) | partial + CI | PARTIAL approval + required gates genuinely failing |
 | [`rocm-systems#10844`](https://github.com/ROCm/rocm-systems/pull/10844) | re-run/rebase | stale `kBlockNameMap` build break (fixed on develop); diff untouched by it |
 | [`rocm-libraries#10233`](https://github.com/ROCm/rocm-libraries/pull/10233) | math CI | required Math CI genuinely failing; needs drill/rebase |
 
@@ -91,16 +91,16 @@ produced the rule now at the top of the skill.
 - **Recovery.** **Chiranjeevi Pattigidi reverted it ([`#10947`](https://github.com/ROCm/rocm-systems/pull/10947))**; tracking issue [`#10949`](https://github.com/ROCm/rocm-systems/issues/10949) was filed;
   the author re-landed the expansion *with* the RDC fix in [`#10973`](https://github.com/ROCm/rocm-systems/pull/10973).
 - **Ripple.** For the rest of the rotation, any PR whose CI had run against the broken window inherited
-  the same `kBlockNameMap` red — which is exactly why [`#8690`](https://github.com/ROCm/rocm-systems/pull/8690) and [`#10844`](https://github.com/ROCm/rocm-systems/pull/10844) were **refused** (their reds
+  the same `kBlockNameMap` job failure — which is exactly why [`#8690`](https://github.com/ROCm/rocm-systems/pull/8690) and [`#10844`](https://github.com/ROCm/rocm-systems/pull/10844) were **refused** (their job failures
   were the stale break, already fixed on develop) rather than merged. The mistake taught the fix.
 
 ### 2. A second override flagged by Rahul as a build failure
 
 - A second bypassed PR was flagged by **Rahul** as causing / at risk of a build failure — the same
-  pattern (a build-step red waved through as "unrelated"). The exact PR should be confirmed from the
+  pattern (a build-step failure waved through as "unrelated"). The exact PR should be confirmed from the
   Teams thread before this row is finalized; it is recorded here because it is the corroborating second
   data point behind the Hard rule, not a one-off.
-- **Lesson (identical to #1).** A red *build* step is never "unrelated" on anyone's say-so. Open the
+- **Lesson (identical to #1).** A failing *build* step is never "unrelated" on anyone's say-so. Open the
   log, read the first error line. `error:` / `static assertion` / `undefined reference` / `ld:` /
   `CMake Error` at compile/link = **code**, blocks the merge, route to CODEOWNERS or revert. Only a
   failure that died *before* the compiler ran (fetch/network/toolchain/runner) is bypass-eligible on a
@@ -130,9 +130,22 @@ produced the rule now at the top of the skill.
   unrelated / not related" override justification, and a bare "help + PR link" ask. Previously these
   real asks were silently dropped.
 
+## End-of-rotation handover
+
+The rotation closed with a full [`handover_skill.md`](../../handover_skill.md) (`/ho`) run — post-merge
+sweep of every override merge, the two requested merge/backlog statistics, and the Tuesday hand-off:
+
+- [`HANDOVER.md`](HANDOVER.md) — the handover document: conclusion, "do these first" actions, open-PR
+  backlog, the 9 post-merge-swept override merges (no code regression), per-repo merge statistics
+  (manual/override vs. not-overridden), unmerged-PR statistics, infra signatures, and lessons.
+- [`HANDOVER_teams.md`](HANDOVER_teams.md) — the phrases-only Teams hand-off message (bold verb first,
+  no tables) that points at the document above.
+
 ## Files
 
 - `../../process_merge_override_skill.md` — the skill this rotation authored, Hard rule and all.
 - `../../scripts/check_approval.py`, `garden_bypass_single.py`, `enqueue_bypass.py`,
   `garden_triage.py`, `build_verdict_report.py` — the override toolchain.
+- `../../scripts/merge_stats.py` — the per-repo manual-vs-normal merge counter used for the handover stats.
 - `../../commands/pmo.md` — the `/pmo` command entry point.
+- `HANDOVER.md`, `HANDOVER_teams.md` — the end-of-rotation handover document and Teams message.
