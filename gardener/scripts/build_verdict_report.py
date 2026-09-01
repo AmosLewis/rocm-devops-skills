@@ -14,7 +14,7 @@ It joins two sources:
       used only to look up each PR's GitHub url + live state and the Teams
       `l/message` permalink for the request post.
 
-Both PR link and Teams link are REQUIRED in the output — never drop the Teams
+Both PR link and Teams link are REQUIRED in the output - never drop the Teams
 permalink when summarizing (see teams-gardener-requests skill).
 
 Usage:
@@ -110,7 +110,7 @@ def main():
     rows.sort(key=lambda x: (x["rank"], x["repo"], int(x["num"])))
 
     out = []
-    out.append("## Open merge-override asks — verdicts\n")
+    out.append("## Open merge-override asks - verdicts\n")
     out.append("| PR | Repo | Requester | State | Verdict | Reason | Teams |")
     out.append("|----|------|-----------|-------|---------|--------|-------|")
     missing = []

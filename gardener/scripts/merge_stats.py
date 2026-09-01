@@ -125,7 +125,7 @@ def main():
         print()
 
     print("== TOTAL across repos")
-    print("  merged: %d  ·  manual/override: %d  ·  not overridden: %d  ·  override share: %.1f%%"
+    print("  merged: %d  |  manual/override: %d  |  not overridden: %d  |  override share: %.1f%%"
           % (grand["total"], grand["manual"], grand["normal"],
              (100.0 * grand["manual"] / grand["total"]) if grand["total"] else 0.0))
     report["total"] = grand

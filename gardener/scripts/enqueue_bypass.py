@@ -50,13 +50,13 @@ def main():
     print(f"  commitBody  : {len(body)} chars, first line: {body.splitlines()[0] if body else ''}")
 
     if p["state"] != "OPEN":
-        print("  ! PR is not OPEN — refusing."); return 1
+        print("  ! PR is not OPEN - refusing."); return 1
     if p["baseRefName"] != "develop":
-        print(f"  ! base is '{p['baseRefName']}', not develop — this is NOT the current bottom of the "
+        print(f"  ! base is '{p['baseRefName']}', not develop - this is NOT the current bottom of the "
               f"stack yet. Merge the PR below it first."); return 1
 
     if not go:
-        print("\nDRY RUN — pass --go to enqueue the bypass merge.")
+        print("\nDRY RUN - pass --go to enqueue the bypass merge.")
         return 0
 
     payload = {"authorEmail": AUTHOR_EMAIL, "commitMessage": body, "commitTitle": headline,
@@ -68,7 +68,7 @@ def main():
     tab.start(); tab.Page.enable(); tab.Runtime.enable()
 
     # Poll for a hydrated, logged-in page: a non-empty fetch-nonce AND a user-login meta.
-    # A fixed sleep is unreliable — a cold tab can take >9s, yielding an empty nonce and a 404.
+    # A fixed sleep is unreliable - a cold tab can take >9s, yielding an empty nonce and a 404.
     nonce, login = "", ""
     for _ in range(20):  # up to ~40s
         time.sleep(2)
@@ -114,7 +114,7 @@ def main():
         enq = {}
     uuid = enq.get("uuid")
     if out["status"] not in (200, 202) or not uuid:
-        print("  ! enqueue did not return a uuid — aborting poll."); tab.stop(); return 1
+        print("  ! enqueue did not return a uuid - aborting poll."); tab.stop(); return 1
 
     # Poll the status endpoint from the page context until it stops being 'pending'.
     for i in range(40):

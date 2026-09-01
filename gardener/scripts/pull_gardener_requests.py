@@ -121,7 +121,7 @@ def classify_merge_help(text, has_pr=False):
       * the gardener override JUSTIFY phrasing ("failures are unrelated / don't
         seem related to the PR") AND a help signal are both present; or
       * an explicit help word (help/please/assist/gardener/pls) appears together
-        with a PR reference — a bare "can you help with <PR link>" in a gardening
+        with a PR reference - a bare "can you help with <PR link>" in a gardening
         channel is still a gardener ask even without the literal word "merge".
 
     The signal/JUSTIFY pairing keeps a passing "merged!" acknowledgement from
@@ -449,7 +449,7 @@ def main():
     gh_cache = {}
     report = {"generatedAt": fmt_time(now_ms), "windowHours": args.hours,
               "mentionName": mention, "channels": {}}
-    md = ["# Gardening requests — last %g h (as of %s)\n" % (args.hours, fmt_time(now_ms))]
+    md = ["# Gardening requests - last %g h (as of %s)\n" % (args.hours, fmt_time(now_ms))]
 
     for topic, repo in CHANNEL_REPOS.items():
         ch = channels_meta.get(topic)
@@ -484,7 +484,7 @@ def main():
             })
         report["channels"][topic] = {"repo": repo, "meta": ch, "requests": rows}
 
-        title_suffix = " — merge/override asks only" if args.merge_only else ""
+        title_suffix = " - merge/override asks only" if args.merge_only else ""
         md.append("## %s  (%s)%s\n" % (topic, repo, title_suffix))
         if not rows:
             md.append("_No%s requests in the last %g h._\n" % (
@@ -499,11 +499,11 @@ def main():
                     ("" if p.get("source") == "root" and not p.get("bare")
                      else " _(%s%s)_" % (p.get("source", "?"),
                                          ", bare#" if p.get("bare") else "")))
-                for p in r["prs"]) or "—"
+                for p in r["prs"]) or "-"
             state_cell = "<br>".join(
                 (p.get("gh", {}) or {}).get("state", "?") + " / " +
                 (p.get("gh", {}) or {}).get("mergeStateStatus", "?")
-                for p in r["prs"]) if not args.no_gh and r["prs"] else "—"
+                for p in r["prs"]) if not args.no_gh and r["prs"] else "-"
             reply_cell = "%d%s" % (r["replyCount"], (" (last %s)" % r["lastReply"]) if r["lastReply"] else "")
             merge_cell = ("**YES** (%s)" % ", ".join(r["mergeTerms"])) if r["mergeHelp"] else ""
             md.append("| %s | %s | %s | %s | %s | %s | [message](%s) | %s |" % (
@@ -527,7 +527,7 @@ def main():
         hits.sort(key=lambda mm: mm["timeMs"])
         report["mentions"] = {"name": mention, "windowHours": args.hours, "channels": {}}
 
-        md.append("# @-mentions of %s — last %g h\n" % (mention, args.hours))
+        md.append("# @-mentions of %s - last %g h\n" % (mention, args.hours))
         if not hits:
             md.append("_No @-mentions in the last %g h._\n" % args.hours)
         for topic, repo in CHANNEL_REPOS.items():
@@ -546,7 +546,7 @@ def main():
                     collect_thread_prs(h, [], repo)
                 pr_cell = "<br>".join(
                     "[%s#%s](https://github.com/%s/pull/%s)" % (p["repo"], p["number"], p["repo"], p["number"])
-                    for p in pr_refs) or "—"
+                    for p in pr_refs) or "-"
                 if root:
                     root_cell = "%s<br>%s" % (root["author"], fmt_time(root["timeMs"]))
                     older = root["timeMs"] < cutoff
@@ -555,7 +555,7 @@ def main():
                     root_cell = "_(root not cached)_"
                     follow = "**?** (root not cached)"
                 in_cell = "root" if h["isRoot"] else "reply"
-                snippet = (h["text"][:120] + "…") if len(h["text"]) > 120 else h["text"]
+                snippet = (h["text"][:120] + "...") if len(h["text"]) > 120 else h["text"]
                 snippet = snippet.replace("|", "\\|").replace("\n", " ")
                 link = teams_link(ch, h["id"], h["parentId"], args.team_name) if ch else ""
                 md.append("| %s | %s | %s | %s | %s | %s | %s | [message](%s) |" % (

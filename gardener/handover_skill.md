@@ -118,10 +118,10 @@ gh api "repos/$REPO/actions/runs?head_sha=$SHA&per_page=100" --paginate --jq '.t
 ```
 
 > **Before you call `total_count=0` a dropped-event finding, confirm you passed the FULL 40-char
-> SHA.** The `head_sha=` filter does **not** match a truncated/abbreviated SHA — pass
+> SHA.** The `head_sha=` filter does **not** match a truncated/abbreviated SHA - pass
 > `mergeCommit.oid` verbatim, not a `sha[:10]`. A truncated SHA returns `total_count=0` on a merge
 > commit that actually has a full push run set, which reads as a platform incident and is a query bug.
-> Cross-check with the commit **check-runs** API (`repos/$REPO/commits/$SHA/check-runs`) — if that has
+> Cross-check with the commit **check-runs** API (`repos/$REPO/commits/$SHA/check-runs`) - if that has
 > the required summaries, the push runs exist and your `head_sha` filter was wrong. (Seen Wk-36: all 9
 > swept merges falsely showed `push-runs=0` until the SHA was un-truncated.)
 
@@ -185,7 +185,7 @@ gh pr view <PR> --repo $REPO --json headRefOid,autoMergeRequest,mergeStateStatus
 | **Do these first** | `# / Action / PR / Why now` table | Priority order. **Must include the "do nothing" items** |
 | **Open PRs** | `PR / What it is / State / Real blocker / Your move / Override?` | One row per PR. "Real blocker" is usually not the loudest red |
 | **Merged this week** | `PR / Merge commit / Post-merge verdict / Mirror` | The §1 output |
-| **Merge statistics** | per-repo `merged / manual-override / not-overridden / open backlog` | §2.5 — the manual-vs-normal ratio Laura used to hand-count; run the script |
+| **Merge statistics** | per-repo `merged / manual-override / not-overridden / open backlog` | §2.5 - the manual-vs-normal ratio Laura used to hand-count; run the script |
 | **Issues filed** | `Issue / What / Owner / What to watch` | Include unfiled drafts and who must approve them |
 | **Daily infra** | `ID / Signature / Verdict / Does a re-run fix it?` | **Highest reuse value of the whole document** |
 | **Lessons** | ~5 imperatives | Only ones that cost you time this week |
@@ -199,19 +199,19 @@ Two rules that carry most of the value:
 - **"Do nothing" must be an explicit numbered action with its consequence spelled out.** A
   conscientious successor will otherwise touch an auto-merge-armed PR and break it.
 
-### 2.5 Merge statistics — manual/override vs. not-overridden, and the unmerged backlog
+### 2.5 Merge statistics - manual/override vs. not-overridden, and the unmerged backlog
 
 The handover should carry two counts per repo (the stats Laura used to produce by hand):
 
 1. **Manual/override merges vs. merges that were not overridden.** "Manual/override" = merged **by the
    gardener account** (`gh pr merge --admin` or the CDP stacked bypass); "not overridden" = auto-merge
-   or a maintainer squash. The ratio is the health signal — a high override share means the required
+   or a maintainer squash. The ratio is the health signal - a high override share means the required
    gates are flaky enough that the gardener is carrying the repo.
-2. **Unmerged-PR statistics** — the open backlog size per repo, and specifically the open **gardener
+2. **Unmerged-PR statistics** - the open backlog size per repo, and specifically the open **gardener
    requests** (override/help asks) carried into next rotation, so the successor inherits a numbered
    queue, not a vague "some are still open".
 
-Do not hand-count these — `mergedBy` fan-out over a few hundred merges is error-prone. Use the helper,
+Do not hand-count these - `mergedBy` fan-out over a few hundred merges is error-prone. Use the helper,
 which pulls `mergedBy` via GraphQL search (paginated) and prints per-repo counts plus the manual PR
 list and the open backlog:
 
@@ -221,7 +221,7 @@ python scripts/merge_stats.py --repos ROCm/rocm-systems ROCm/rocm-libraries \
 ```
 
 Note the manual count is **every** merge from the gardener account (admin overrides **and** any
-gardener-driven squash such as a bump-PR sweep) — a superset of the override *requests* in your Open
+gardener-driven squash such as a bump-PR sweep) - a superset of the override *requests* in your Open
 PRs table. Call that out so the two numbers are not read as contradictory. Measured Wk-36:
 rocm-systems 271 merged / 45 manual (16.6%) / 226 not overridden; rocm-libraries 265 / 6 (2.3%) / 259.
 
