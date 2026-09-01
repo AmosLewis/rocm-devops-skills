@@ -24,7 +24,7 @@ Usage:
   python pull_gardener_requests.py --hours 24
   python pull_gardener_requests.py --no-gh --json out.json --md out.md
   python pull_gardener_requests.py --launch           # start Chrome if CDP is down
-  python pull_gardener_requests.py --mention "Chen, Justin"   # flag posts that @-tag this name
+  python pull_gardener_requests.py --mention "Last, First"    # flag posts that @-tag this name
                                                               # (omit --mention to auto-detect the
                                                               #  logged-in Teams user)
 """
