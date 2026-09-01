@@ -2,3 +2,7 @@
 report.json
 report.md
 _verify.*
+
+# Python bytecode
+__pycache__/
+*.pyc
