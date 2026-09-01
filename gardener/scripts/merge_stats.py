@@ -14,7 +14,7 @@ Data source is the GitHub GraphQL search API via `gh api graphql`, paginated, so
 
 Usage:
   python merge_stats.py --repos ROCm/rocm-systems ROCm/rocm-libraries \
-      --since 2026-08-24 --until 2026-09-01 --gardener amd-justchen [--json out.json]
+      --since 2026-08-24 --until 2026-09-01 --gardener <your-github-login> [--json out.json]
 """
 import argparse
 import json
