@@ -14,24 +14,67 @@ Companion to [`monorepo_gardener_skill.md`](monorepo_gardener_skill.md): this sk
 
 ## What it produces
 
-One markdown table per channel, each row = a top-level (root) post in the window.
-**Scope note:** the script does not classify intent — it emits *every* root post in the
-look-back window, not only explicit merge/override/help asks. Some rows will be
-unrelated chatter or FYIs (no PR link, `state = —`). Use the `PR(s)` and `State`
-columns to find the actionable ones (a referenced PR that is `OPEN / BLOCKED`); rows
-with no PR are usually discussion, not a request.
+One markdown table per channel, each row = a top-level request post:
 
 | Column | Meaning |
 | --- | --- |
-| PR(s) | GitHub PRs referenced in the post (from the message's own links) |
+| PR(s) | Every GitHub PR referenced **anywhere in the thread** (root + replies), from full URLs, `<org>/<repo>#<n>` shorthand, and bare `#<n>` refs (resolved to the channel's repo). Refs found in a reply or via a bare `#<n>` are annotated (e.g. `_(reply)_`, `_(root, bare#)_`) so you can see where the sweep picked them up |
 | Requester | Teams display name of the author |
 | When | Post time (local) |
 | Replies | Reply count + last-reply time (a cheap "is it resolved?" signal) |
+| Merge ask | `YES (terms…)` when the post text reads as a merge / override / bypass / help-to-merge request — the likely **merge-override** work. Filter to just these with `--merge-only` |
 | State | Live `gh` `state / mergeStateStatus` per PR (skip with `--no-gh`) |
 | Teams | Canonical `l/message` permalink to the exact post (rendered as a `[message](…)` link) |
 | Tagged you | `YES` when the post @-mentions the resolved name (`--mention`, else the logged-in Teams user) |
 
-Also writes a full JSON report (`--json`) for downstream use.
+Also writes a full JSON report (`--json`) for downstream use; each request row
+carries `prs` (with per-ref `source`/`bare`), `mergeHelp`, and `mergeTerms`.
+
+## Wider PR sweep + merge-intent filter
+
+The pull is deliberately generous about **which PRs it associates with a request**,
+then lets you narrow by **intent**:
+
+- **Sweep (wide):** PRs are collected across the whole thread — the root post *and
+  its replies* — and from three reference forms: full `github.com/.../pull/<n>`
+  URLs, `<org>/<repo>#<n>` shorthand, and bare `#<n>` numbers (≥3 digits, resolved
+  to the channel's repo). This catches asks where the PR only shows up in a
+  follow-up reply or as a bare number. Non-root/bare refs are annotated in the
+  table so the origin stays visible, and everything is deduped by repo+number.
+- **Filter (narrow):** each root post is classified as a merge-help request or not.
+  Strong signals (`override`, `bypass`, `force-merge`, `admin merge`) qualify on
+  their own. A merge verb in **any form** (`merge`/`merged`/`merges`/`merging`/
+  `re-merge`/`unblock`) qualifies alongside a help signal
+  (`help`/`please`/`can`/`gardeners?`/`blocked`/`?`). The canonical override
+  justification — "the failures are **unrelated** / **don't seem related** to the
+  PR" — also qualifies alongside a help signal even when the literal word "merge"
+  is absent. Finally, a bare help word (`help`/`please`/`assist`/`gardeners?`/
+  `pls`) **plus a PR link** counts as an ask (e.g. "can I get some help on this
+  <PR>"). The help-signal pairing keeps a passing "Merged! thanks" acknowledgement
+  from being misread as a request. Pass `--merge-only` to drop everything except
+  these likely merge-override asks.
+
+## @-mentions sweep (`--mentions`) — follow-ups a gardener hands you
+
+The request tables only flag `@`-mentions on **root** posts in-window. But the way
+a gardener hands you a follow-up is a **reply** that `@`-tags you on someone else's
+(often **last-week**) request thread — which the root-only flag never surfaces.
+`--mentions` adds a dedicated sweep for exactly that:
+
+- Scans **every** message (root **or** reply) in the window whose text `@`-tags the
+  resolved name (`--mention`, else the logged-in Teams user), keyed off the Teams
+  mention span — **not** a text search, so reply-quotes that merely *quote* your
+  earlier message (`<blockquote itemtype=".../Reply">`) are correctly ignored.
+- Resolves each hit back to its **thread root** (author, time, thread-wide PRs) even
+  when the root is older than the window, and sets **Follow-up on older? = YES** when
+  the root predates the window — i.e. a this-week ping on a last-week request.
+- The `Teams` link points at the **exact tagging message** (the reply), so you land
+  on the ask, not the top of the thread.
+
+Run it over a week window so last-week roots resolve:
+`python pull_gardener_requests.py --mentions --hours 168`. Combine with `--sync` the
+first time so older chains are hydrated into IndexedDB (otherwise an old root shows
+as `root not cached`). The JSON report gains a `mentions` block.
 
 ## Why it reads IndexedDB (not the DOM)
 
@@ -84,6 +127,13 @@ python pull_gardener_requests.py --hours 24 --no-gh
 # force-load older/newer messages first (opens each channel + scrolls), then read:
 python pull_gardener_requests.py --sync --hours 120
 
+# only the likely merge-override work: posts asking for help to merge/override,
+# swept over a wider window (replies + bare #refs are included automatically):
+python pull_gardener_requests.py --sync --hours 168 --merge-only --md overrides.md
+
+# my @-mentions this week, incl. follow-ups a gardener left on last-week threads:
+python pull_gardener_requests.py --sync --hours 168 --mentions --md mine.md
+
 # start the browser first if CDP is down:
 python pull_gardener_requests.py --launch
 ```
@@ -91,6 +141,8 @@ python pull_gardener_requests.py --launch
 | Flag | Default | Purpose |
 | --- | --- | --- |
 | `--hours N` | 48 | look-back window for root posts |
+| `--merge-only` | off | keep only posts classified as merge / override / help-to-merge requests (the likely merge-override work) |
+| `--mentions` | off | add an `@`-mentions sweep (root **or** reply) that resolves each tag back to its thread root and flags follow-ups on older (last-week) requests |
 | `--no-gh` | off | skip live PR state (much faster) |
 | `--mention "Last, First"` | auto-detect | mark posts that @-mention this display name; if omitted, the logged-in Teams user (from the MSAL account cache) is used |
 | `--sync` | off | before reading, open each channel via a trusted CDP click and scroll up to hydrate IndexedDB (best-effort; see below) |
@@ -106,15 +158,27 @@ Edit the constants at the top of `scripts/pull_gardener_requests.py`:
 - `CHANNEL_REPOS` — channel `topic` → GitHub `org/repo`. Add channels here.
 - `CDP_URL` — debug endpoint (default `http://127.0.0.1:9222`).
 - `CHROME_CANDIDATES`, `PROFILE_DIR` — used by `--launch`.
+- `_MERGE_STRONG` / `_MERGE_MERGEISH` / `_MERGE_JUSTIFY` / `_MERGE_HELP_WORDS` /
+  `_MERGE_SIGNAL` — the term lists that drive the `Merge ask` classification and
+  `--merge-only` filter. `_MERGE_MERGEISH` matches the merge verb in any inflection
+  (merge/merged/merges/merging); `_MERGE_JUSTIFY` holds the "unrelated / not
+  related" override justification; `_MERGE_HELP_WORDS` are the explicit assistance
+  words used by the "help + PR link" catch-all. Add rotation-specific phrasing here
+  (e.g. a team's pet word for "force it through").
 
 ## How to run it as a gardener
 
 1. Leave the CDP Chrome + Teams open all week (the live client keeps IndexedDB
    fresh as messages arrive). Re-run the script whenever you want a refresh.
-2. Skim the table top-down: rows with `state = OPEN / BLOCKED` and a low reply
-   count are the real work; `MERGED` / high-reply rows are usually already handled.
+2. Skim the table top-down: rows with `Merge ask = YES` and `state = OPEN / BLOCKED`
+   plus a low reply count are the real merge-override work; `MERGED` / high-reply
+   rows are usually already handled. Use `--merge-only` to drop everything except
+   the merge/override asks, and widen `--hours` to sweep a fuller window — the PR
+   sweep already reaches into replies and bare `#<n>` refs, so a request whose PR
+   only appears in a follow-up still surfaces.
 3. For any row you want to act on, hand the PR to the `monorepo_gardener_skill.md` `/gr`
-   flow. This skill never merges, comments, or posts — it is read-only.
+   flow (or [`process_merge_override_skill.md`](process_merge_override_skill.md) for a
+   bypass). This skill never merges, comments, or posts — it is read-only.
 
 **Always keep the Teams message link per row.** Every row carries a `[message](…)`
 permalink to the exact post in the `Teams` column. When you distill or re-present a
@@ -189,4 +253,8 @@ Two things make blind clicks miss, both handled by `--sync`:
 ## Files
 
 - `scripts/pull_gardener_requests.py` — CDP driver + `gh` enrichment + formatting.
-- `scripts/pull_messages.js` — async IndexedDB extractor injected into the Teams tab.
+  Also hosts the thread-wide PR sweep (`collect_thread_prs`) and the merge-help
+  classifier (`classify_merge_help`, driven by the `_MERGE_*` term lists).
+- `scripts/pull_messages.js` — async IndexedDB extractor injected into the Teams
+  tab. Emits, per message, `prs` (full-URL + `<org>/<repo>#<n>` shorthand) and
+  `prNumbers` (bare `#<n>` refs, ≥3 digits, shorthand stripped first).

@@ -10,11 +10,17 @@ AI-assisted skills and commands for ROCm DevOps workflows. Clone this repo and p
 | **Bump PR Gardener** | [`gardener/bumppr_skill.md`](gardener/bumppr_skill.md) | `/tr` | You are triaging the twice-daily **bot bump PRs** in ROCm/TheRock |
 | **Rotation Handover** | [`gardener/handover_skill.md`](gardener/handover_skill.md) | `/ho` | It is the **last day of your gardener week** and you need the post-merge sweep, the handover doc and the Teams message |
 | **Teams Gardener Requests** | [`gardener/teams_gardener_requests_skill.md`](gardener/teams_gardener_requests_skill.md) | `/tgr` | You want to **auto-pull merge/override/help requests** from the Teams gardening channels (via Chrome CDP + IndexedDB) into a table with PR state and message permalinks |
+| **Process Merge Override** | [`gardener/process_merge_override_skill.md`](gardener/process_merge_override_skill.md) | `/pmo` | Someone asks you to **override / force-merge / bypass** a `BLOCKED` PR whose only required-gate reds are known infra flakes — this takes the decision through to a verified merge, a posted rationale, and a Teams reply |
 
 The first two cover the same rotation from different ends: `/gr` is per-request triage on human PRs
 and post-submit reds, `/tr` is the scheduled bump-PR sweep. `/ho` closes the week: it sweeps
 post-merge CI on everything you merged, then produces the handoff artifacts in a fixed shape so the
-next gardener can start from the same baseline every rotation.
+next gardener can start from the same baseline every rotation. `/tgr` acquires the week's asks from
+Teams; `/pmo` is the execution end of `/gr` — once a blocked PR is triaged as infra-only, `/pmo`
+verifies the preconditions, merges past the failing required gate (single or stacked), sweeps the
+merge commit, and hands back the Teams reply. A worked rotation, including the two build-break
+mistakes that produced the `/pmo` "Hard rule", is in
+[`gardener/examples/week36-override-rotation/`](gardener/examples/week36-override-rotation/README.md).
 
 The normative policy for the role lives in
 each repo's own doc and wins over anything here —
