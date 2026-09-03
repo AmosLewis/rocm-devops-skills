@@ -1,6 +1,6 @@
 ---
 name: teams-gardener-requests
-description: Pull recent gardening merge/override/help requests from the Microsoft Teams "Gardening - rocm-libraries" and "Gardening - rocm-systems" channels and produce a table with requester, timestamp, referenced PRs, live GitHub PR state, Teams permalinks, and optional @-mention flagging. Reads the Teams web client's own IndexedDB cache over Chrome CDP (no fragile UI scraping). Use when asked to list/refresh current gardening requests, get Teams discussion links, or check whether you were @-tagged.
+description: Pull recent gardening merge/override/help requests from the Microsoft Teams "Gardening - rocm-libraries" and "Gardening - rocm-systems" channels and produce a table with requester, timestamp, referenced PRs, live GitHub PR state, Teams permalinks, and optional @-mention flagging. Reads messages browserlessly by default via the private api.spaces.skype.com HTTP path (the slai-teams token dance; no Chrome needed), and falls back to the Teams web client's own IndexedDB cache over Chrome CDP. Use when asked to list/refresh current gardening requests, get Teams discussion links, or check whether you were @-tagged.
 ---
 # Skill: Teams Gardener Requests - automated channel pull
 
@@ -76,6 +76,50 @@ Run it over a week window so last-week roots resolve:
 first time so older chains are hydrated into IndexedDB (otherwise an old root shows
 as `root not cached`). The JSON report gains a `mentions` block.
 
+## Message source: browserless Skype HTTP (default) with CDP fallback
+
+`pull_gardener_requests.py` reads messages from one of two sources, selected by
+`--source` (default `auto`):
+
+- **`skype` (preferred, browserless)** - the private `api.spaces.skype.com` messaging
+  service that `teams.microsoft.com` itself uses, reached through the companion
+  `slai-teams` skill's token dance (device-code refresh token -> FOCI swap ->
+  `skypetoken`). No Chrome, no CDP, no `:9222`, no `--sync` hydration. The script pins
+  each channel's `threadId`/`groupId`/`tenant` (the `CHANNEL_META` constant) and pages
+  the channel via the service's backward-link until the look-back window is covered,
+  producing the exact same report the CDP path does.
+- **`cdp` (fallback)** - the original path: read the Teams web client's own IndexedDB
+  cache over Chrome CDP. Needs a logged-in browser parked on `:9222` and can require
+  `--sync` to hydrate older messages. Still here because it discovers `threadId`s from
+  IndexedDB (portable if the rotation moves channels) and needs no Graph token.
+- **`auto` (default)** - try `skype`; if the token/endpoint or the `slai-teams` skill is
+  unavailable, fall back to `cdp` automatically.
+
+```powershell
+# default (auto = skype, browserless):
+python pull_gardener_requests.py --hours 72 --merge-only --md overrides.md
+# force a source:
+python pull_gardener_requests.py --source skype --hours 72 --merge-only
+python pull_gardener_requests.py --source cdp   --hours 72 --merge-only --launch
+```
+
+This skype path depends on the separate **`slai-teams`** skill (its
+`scripts/skype_client.py` and a Graph token). The script auto-discovers `slai-teams`
+at `../../slai-teams/scripts` or `~/.copilot/skills/slai-teams/scripts`; set the
+`SLAI_TEAMS_SCRIPTS` env var to point elsewhere. If it is not installed, use
+`--source cdp` (or let `--source auto` fall back for you).
+
+**Why not plain Microsoft Graph?** AMD blocks Graph's message-read scopes (`Chat.Read` /
+`ChatMessage.Read` / `ChannelMessage.Read.All`) at the client-to-resource pre-authorization
+layer for every first-party client (`AADSTS65002`), and Graph's Teams message reads are
+metered "protected APIs" needing Microsoft approval + admin consent regardless. So the only
+two working reads are the Skype-token HTTP path and CDP+IndexedDB - not Graph.
+
+**Skype-path implementation notes.** The service's `_metadata.syncState` is a full
+backward-link URL - GET it directly, never re-wrap it as a `?syncState=` param (that 400s);
+and a Teams message `id` is its createdTime in epoch-ms, which is why it doubles as the
+permalink msgId (verified: msgId `1788365433045` for #10572).
+
 ## Why it reads IndexedDB (not the DOM)
 
 The Teams web client caches every loaded channel message in IndexedDB:
@@ -96,10 +140,18 @@ does **not** contain the channel threadId at all - only IndexedDB / app state do
 
 ## Prerequisites
 
-1. **Chrome (or Edge) running with remote debugging, signed into Teams.**
+**For the default `skype` source (browserless):**
+1. The companion **`slai-teams`** skill installed with a valid Graph token (run its
+   `scripts/auth.py` once, device code). `skype_client.py` must be importable - it is
+   auto-discovered at `../../slai-teams/scripts` or `~/.copilot/skills/slai-teams/scripts`,
+   or set `SLAI_TEAMS_SCRIPTS`. No Chrome, no pychrome.
+2. `gh` authenticated (`gh auth status`) - only needed unless `--no-gh`.
+
+**For the `cdp` fallback only:**
+3. **Chrome (or Edge) running with remote debugging, signed into Teams.**
    The script can start one for you against a persistent profile:
    ```powershell
-   python pull_gardener_requests.py --launch
+   python pull_gardener_requests.py --source cdp --launch
    ```
    Manual equivalent:
    ```powershell
@@ -110,44 +162,41 @@ does **not** contain the channel threadId at all - only IndexedDB / app state do
    ```
    The persistent `--user-data-dir` keeps you signed in across relaunches, so a
    crashed/closed browser recovers without a fresh AMD-Okta login.
-2. `pip install pychrome`
-3. `gh` authenticated (`gh auth status`) - only needed unless `--no-gh`.
+4. `pip install pychrome`.
 
 ## Usage
 
 ```powershell
 cd scripts
-# last 48h, both channels, live gh state, flag posts that @-tag you.
-# --mention is optional: omit it and the script auto-detects the logged-in Teams user.
+# last 48h, both channels, live gh state, flag posts that @-tag you (browserless by default).
+# --mention is optional: omit it and the script auto-detects the logged-in user.
 python pull_gardener_requests.py --json report.json --md report.md
 
 # quick, no GitHub calls:
 python pull_gardener_requests.py --hours 24 --no-gh
 
-# force-load older/newer messages first (opens each channel + scrolls), then read:
-python pull_gardener_requests.py --sync --hours 120
-
 # only the likely merge-override work: posts asking for help to merge/override,
 # swept over a wider window (replies + bare #refs are included automatically):
-python pull_gardener_requests.py --sync --hours 168 --merge-only --md overrides.md
+python pull_gardener_requests.py --hours 168 --merge-only --md overrides.md
 
 # my @-mentions this week, incl. follow-ups a gardener left on last-week threads:
-python pull_gardener_requests.py --sync --hours 168 --mentions --md mine.md
+python pull_gardener_requests.py --hours 168 --mentions --md mine.md
 
-# start the browser first if CDP is down:
-python pull_gardener_requests.py --launch
+# force the CDP fallback (opens/hydrates a browser); --sync/--launch are CDP-only:
+python pull_gardener_requests.py --source cdp --launch --sync --hours 120
 ```
 
 | Flag | Default | Purpose |
 | --- | --- | --- |
+| `--source skype\|cdp\|auto` | `auto` | message source: `skype` (browserless HTTP, preferred), `cdp` (Chrome/IndexedDB), or `auto` (skype, fall back to cdp) |
 | `--hours N` | 48 | look-back window for root posts |
 | `--merge-only` | off | keep only posts classified as merge / override / help-to-merge requests (the likely merge-override work) |
 | `--mentions` | off | add an `@`-mentions sweep (root **or** reply) that resolves each tag back to its thread root and flags follow-ups on older (last-week) requests |
 | `--no-gh` | off | skip live PR state (much faster) |
-| `--mention "Last, First"` | auto-detect | mark posts that @-mention this display name; if omitted, the logged-in Teams user (from the MSAL account cache) is used |
-| `--sync` | off | before reading, open each channel via a trusted CDP click and scroll up to hydrate IndexedDB (best-effort; see below) |
+| `--mention "Last, First"` | auto-detect | mark posts that @-mention this display name; if omitted, the logged-in user is used |
+| `--sync` | off | **CDP-only**: before reading, open each channel via a trusted CDP click and scroll up to hydrate IndexedDB (best-effort; ignored under `--source skype`) |
 | `--sync-scrolls N` | 6 | scroll-to-top passes per channel when `--sync` |
-| `--launch` | off | launch Chrome with the persistent profile if CDP is down |
+| `--launch` | off | **CDP-only**: launch Chrome with the persistent profile if CDP is down |
 | `--team-name` | `AIG ROCm` | value put in the permalink `teamName=` param |
 | `--json PATH` / `--md PATH` | - | also write the report to disk |
 
@@ -156,6 +205,10 @@ python pull_gardener_requests.py --launch
 Edit the constants at the top of `scripts/pull_gardener_requests.py`:
 
 - `CHANNEL_REPOS` - channel `topic` -> GitHub `org/repo`. Add channels here.
+- `CHANNEL_META` - per-channel `threadId`/`groupId`/`tenant` for the **skype** source
+  (the CDP source discovers these from IndexedDB). Update if the rotation moves channels.
+- `SLAI_TEAMS_SCRIPTS` (env) - where `slai-teams`'s `skype_client.py` lives, if not
+  auto-discovered.
 - `CDP_URL` - debug endpoint (default `http://127.0.0.1:9222`).
 - `CHROME_CANDIDATES`, `PROFILE_DIR` - used by `--launch`.
 - `_MERGE_STRONG` / `_MERGE_MERGEISH` / `_MERGE_JUSTIFY` / `_MERGE_HELP_WORDS` /
@@ -168,8 +221,11 @@ Edit the constants at the top of `scripts/pull_gardener_requests.py`:
 
 ## How to run it as a gardener
 
-1. Leave the CDP Chrome + Teams open all week (the live client keeps IndexedDB
-   fresh as messages arrive). Re-run the script whenever you want a refresh.
+1. By default the read is **browserless** (`--source auto` -> skype), so there is nothing
+   to keep open - just re-run the script whenever you want a refresh, as long as the
+   `slai-teams` Graph token is valid (run its `scripts/auth.py` once). If you fall back to
+   `--source cdp`, leave the CDP Chrome + Teams open so the live client keeps IndexedDB
+   fresh as messages arrive.
 2. Skim the table top-down: rows with `Merge ask = YES` and `state = OPEN / BLOCKED`
    plus a low reply count are the real merge-override work; `MERGED` / high-reply
    rows are usually already handled. Use `--merge-only` to drop everything except
@@ -252,9 +308,11 @@ Two things make blind clicks miss, both handled by `--sync`:
 
 ## Files
 
-- `scripts/pull_gardener_requests.py` - CDP driver + `gh` enrichment + formatting.
-  Also hosts the thread-wide PR sweep (`collect_thread_prs`) and the merge-help
-  classifier (`classify_merge_help`, driven by the `_MERGE_*` term lists).
+- `scripts/pull_gardener_requests.py` - the driver: skype (browserless) + CDP sources,
+  `gh` enrichment, and formatting. Also hosts the thread-wide PR sweep
+  (`collect_thread_prs`) and the merge-help classifier (`classify_merge_help`, driven by
+  the `_MERGE_*` term lists). The skype source (`fetch_via_skype`) imports the separate
+  `slai-teams` skill's `skype_client.py`.
 - `scripts/pull_messages.js` - async IndexedDB extractor injected into the Teams
-  tab. Emits, per message, `prs` (full-URL + `<org>/<repo>#<n>` shorthand) and
-  `prNumbers` (bare `#<n>` refs, >=3 digits, shorthand stripped first).
+  tab (the **CDP** source only). Emits, per message, `prs` (full-URL + `<org>/<repo>#<n>`
+  shorthand) and `prNumbers` (bare `#<n>` refs, >=3 digits, shorthand stripped first).
