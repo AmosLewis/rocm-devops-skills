@@ -65,6 +65,17 @@ def main():
     ap.add_argument("--go", action="store_true", help="post the comment and admin-merge (else dry-run)")
     a = ap.parse_args()
 
+    # 0. Format guard: every --fails entry MUST contain a colon (split into
+    # 'Job name: reason' on the first ':'). A colon-less entry silently becomes a
+    # blank/duplicated bullet in the rationale comment and loses the reason text.
+    # Fail fast here, before any network call.
+    bad = [f for f in a.fails if ":" not in f]
+    if bad:
+        for f in bad:
+            sys.stderr.write("  malformed --fails (no colon): %r\n" % f)
+        raise SystemExit("Each --fails must be 'Job name: reason' (needs a colon separating job from "
+                         "reason). Fix the entries above and re-run.")
+
     # 1. Gate: must be OPEN + not draft + APPROVED + BLOCKED (a required check failing)
     v = gh_json(["pr", "view", str(a.pr), "--repo", a.repo, "--json",
                  "state,mergeStateStatus,reviewDecision,baseRefName,isDraft"])

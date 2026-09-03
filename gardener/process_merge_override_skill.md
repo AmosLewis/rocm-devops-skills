@@ -17,6 +17,44 @@ infra classification, never on numerics, performance, or component-code correctn
 
 Scripts referenced below live in `scripts/` next to this file. All are dry-run by default.
 
+## Quick commands (the typical /pmo flow)
+
+Terse cheat-sheet; each step is explained in full below. All scripts are dry-run until you add `--go`.
+Repo is `ROCm/rocm-systems` or `ROCm/rocm-libraries`.
+
+```bash
+# 0. Pull the week's asks from Teams (read-only) -> table with PR state + permalinks
+python ../teams_gardener_requests_skill scripts/pull_gardener_requests.py --hours 72 --merge-only --md sweep.md
+
+# 1. Resolve the TRUE approval axis (trust this, NOT raw reviewDecision). Only APPROVED is bypassable.
+python scripts/check_approval.py <PR> --repo <REPO>        # APPROVED | PARTIAL | NOT_APPROVED | CHANGES_REQUESTED
+
+# 2. Confirm shape: base==develop AND no children == single (--admin). Else stacked (enqueue_bypass.py).
+gh pr view <PR> --repo <REPO> --json baseRefName,headRefName,state,mergeStateStatus,isDraft
+gh pr list --repo <REPO> --base <this PR's headRefName> --state open --json number   # children? -> stacked
+
+# 3. Prove failing required lanes are infra. Batch several PRs = free cross-check (COMMON lane == infra).
+python scripts/garden_triage.py --prs <PR1>,<PR2>,<PR3> --repo <REPO> --deep
+gh pr view <PR> --repo <REPO> --json files --jq '.files[].path'   # match each distinctive fail to the diff
+
+# 4a. SINGLE PR: dry-run the rationale, read it, then re-run with --go to comment + admin-merge.
+python scripts/garden_bypass_single.py <PR> --repo <REPO> \
+  --unrelated '<what the diff actually is>' \
+  --fails 'Job A: reason' --fails 'Job B: reason'   # one --fails per lane; every entry NEEDS a colon
+#   ...append --go to execute;  add --ack-build-failure-is-infra ONLY for a build step you proved infra from the log
+
+# 4b. STACKED PR: needs authenticated CDP Chrome on :9222; merge bottom -> top, one at a time.
+python scripts/enqueue_bypass.py <BOTTOM_PR>        # dry run (refuses unless base==develop)
+python scripts/enqueue_bypass.py <BOTTOM_PR> --go   # irreversible; poll to MERGED, then repeat up the stack
+
+# 5. Post-merge sweep of the merge SHA. total_count==0 here is a dropped-push FINDING, not silence.
+gh api "repos/<REPO>/actions/runs?head_sha=<merge_sha>&per_page=100" --paginate \
+  --jq '.workflow_runs[] | select(.event!="issue_comment") | "\(.event) \(.name) \(.conclusion)"'
+```
+
+Hand back the script's paste-ready `Merged! <comment-url>` line **with** the PR's Teams thread
+permalink. Batch ask (several PRs)? Report the verdict table first and let the gardener pick - see below.
+
 ## When asked to process a *batch* (several PRs, "process these", or a fresh sweep): report first
 
 If the ask covers **more than one** PR - a stack, a list, or a "process the open override
@@ -54,6 +92,49 @@ the PR's amdsmi GPU-block enum expansion. It landed on `develop`, broke the RDC 
 reverted (#10947) with a tracking issue filed. The owners' explicit correction: *"please do not take
 developers' word for build compilation issues; CI failures for build should never be treated as
 un-related."* Had this rule been applied, #10179 would not have been overridden.
+
+## Known infra-flake catalog (verify each still matches the log, then cite the precedent)
+
+> **Rotation-scoped snapshot - expect this to drift.** The entries below are the recurring,
+> log-confirmed infra failures observed during the **week-36 / early-Sept-2026** rotation. Known flakes
+> are **not permanent**: a lane listed here can be fixed, re-tuned, or retired between rotations, and a
+> genuinely *new* code failure can start wearing the same lane name. Treat this list as a time-stamped
+> hint, never as standing authority - **always re-open the current log and confirm the signature still
+> matches before citing an entry**, and when you inherit or hand off the rotation, re-baseline it (prune
+> what's fixed, add what's newly proven, update the "Last confirmed" date). Each entry carries the
+> dates/PRs where it was last proven so a later gardener can tell how stale it is.
+
+These are the recurring, log-confirmed infra failures seen this rotation. A matching signature is
+strong, precedent-backed evidence the lane is infra and gives you concrete `--fails` wording - but it is
+evidence to confirm against today's log, not a license to skip reading it.
+
+- **Windows amd-mesa third-party build (`lua` toolchain)** - job `Windows (gfxNNNN) / Build Windows
+  Packages`, failing step `Build therock-artifacts and therock-dist`. Log signature (read it to confirm):
+  `[therock-amd-mesa] ... Run-time dependency lua54 / lua-5.4 found: NO (tried pkg-config and cmake)`
+  then `[therock-amd-mesa] Preliminary CMake check failed. Aborting.` and
+  `FAILED: .../amd-mesa/build/stamp/build.stamp`. This is a **third-party sub-project** whose meson
+  build cannot find `lua` on the runner - it dies **before any PR code is compiled**, so it is toolchain
+  provisioning, not the diff. The many `LNK2019` lines under `[therock-amd-mesa]` are meson's own
+  compiler-feature probe files (`testfile.obj` in `meson-private\tmp...`), not the PR's code - do not
+  mistake them for a link break in the diff. It rolls the retired **`TheRock CI Summary`** red while the
+  migrated **`Multi-Arch CI Summary` stays green**. This is the one legitimate
+  `--ack-build-failure-is-infra` case (the reason text trips the compile regex, but the log proves
+  infra). Caveat to state honestly: if the PR itself changes Windows code, the Windows build dying in
+  amd-mesa means the PR's Windows path was **never validated** - flag that coverage gap to the author,
+  even though the failing gate is infra. _Last confirmed: 2026-09-02 (#9836, #9042, #10034)._
+
+- **`Merged PR to Patch Subrepos` failing on the merge SHA (post-submit)** - a known, recurring red on
+  the subrepo-mirror workflow (failing step `Generate and apply patches`). Seen failing on the #10572
+  and #9836 merge SHAs while #11033's went green the same day - i.e. it is flaky and **not** caused by
+  your specific bypass. Glance at it during the Step-4 sweep, but a lone failure here is not evidence
+  your merge broke `develop`. (Distinct from `total_count == 0`, which is a genuine dropped-push
+  finding.) _Last confirmed: 2026-09-02 (#10572, #9836)._
+
+- **MI455 hip-tests / rocrtst container-init deaths** - `Linux MI455 Test / Test hip-tests` and
+  `Test rocrtst` frequently die in container/OCI setup (exit 137, `setns` errors, `Initialize
+  containers`, harness aborting ~2s after start). When the **same** lane fails across several unrelated
+  diffs in one triage batch (COMMON), that is shared-environment infra by definition, not any one diff.
+  _Last confirmed: 2026-09-02 (COMMON across #9243, #10034, #10790, #11033)._
 
 ## The one thing that decides everything: single vs stacked
 
@@ -161,8 +242,27 @@ gh api repos/$REPO/rulesets/<RULESET_ID> \
   --jq '[.rules[] | select(.type=="required_status_checks")
          | .parameters.required_status_checks[].context]'
 ```
-Verified 2026-08: rocm-systems `develop` requires only `TheRock CI Summary` + `HIP NVIDIA CI Summary`;
-rocm-libraries `develop` requires `TheRock CI Summary` + `Math CI Summary` + `pre-commit`. Everything
+Verified 2026-08: rocm-systems `develop` (ruleset 9297053) required `TheRock CI Summary` +
+`HIP NVIDIA CI Summary`; rocm-libraries `develop` (ruleset 5167088) required `TheRock CI Summary` +
+`Math CI Summary` + `pre-commit`. Everything else is advisory and never a bypass reason.
+
+**The gating summary check was renamed `TheRock CI Summary` -> `Multi-Arch CI Summary` (2026-09).**
+The `TheRock CI` **workflow** name is unchanged - only its rolled-up summary **context** was renamed, so
+a recently-rebased PR now posts `Multi-Arch CI Summary` (green/red) and **no** `TheRock CI Summary`.
+Treat `Multi-Arch CI Summary` as the TheRock gate from now on. Current live state:
+- rocm-libraries `develop` (ruleset 5167088): branch protection already migrated - requires
+  `Multi-Arch CI Summary` + `Math CI Summary` + `pre-commit`.
+- rocm-systems `develop` (ruleset 9297053): branch protection still *names* the retired
+  `TheRock CI Summary` (+ `HIP NVIDIA CI Summary`), but the CI now emits `Multi-Arch CI Summary`
+  instead. **Known transition mismatch (ruleset lag):** a recently-based rocm-systems PR that is green
+  on `Multi-Arch CI Summary` can still show `BLOCKED`, because the required (old-named)
+  `TheRock CI Summary` context never posts. That is a ruleset lag (owners must repoint it to
+  `Multi-Arch CI Summary`), **not** a real red - read the `Multi-Arch CI Summary` result as the gate.
+  Older-based rocm-systems PRs may still carry the old `TheRock CI Summary` context until they rebase.
+  Ruleset-lag clean-bypass precedents (2026-09): #11033, #10790, #10034, #9836, #10572.
+
+Always **enumerate the live ruleset** (query above) rather than trust these names - and match the gate
+by BOTH the ruleset context AND the check the CI actually posts (`Multi-Arch CI Summary`). Everything
 else is advisory and never a bypass reason.
 
 ## Step 1 - Triage: rule out a code cause (common vs distinctive)
@@ -215,6 +315,18 @@ Real example - today's `-Prs 10000,10802,10396`: `MI455 Build (gfx125X-dcgpu)` g
 (GPU sanity); the three distinctive lanes were Docker subnet exhaustion (#10396 sanity), Windows
 amd-mesa (#10802), and a `rocgdb-gpu (xfail)` expected-fail - all infra/advisory, so all three were
 override-eligible.
+
+**Match every failing test to the changed files - a fail inside the diff's blast radius is never a
+bypass, even when `Multi-Arch CI Summary` is green.** A green summary is an aggregate; a single real
+test failure can still be hiding under it. Before overriding, pull the PR's changed files
+(`gh pr view <PR> --repo <REPO> --json files --jq '.files[].path'`) and check whether any failing
+test's source lives in one of them. If it does, the failure is in-scope for the change and you must
+route it to the author/CODEOWNERS, not bypass it. Incident (2026-09): sibling PRs #9243 and #10790 were
+triaged together. #9243 changed only `hipFreeMipmappedArray.cc` and its own
+`Unit_hipFreeMipmappedArrayMultiTArray` test failed on gfx94X - a fail living in the file the PR edits,
+so it was **HELD**. #10790 changed only `hipHostRegister.cc` and its lone red was an unrelated
+rocprofiler-sdk timeout (nothing to do with the diff) - so it was merged. Same batch, opposite verdicts,
+decided purely by whether the failing test was in the blast radius.
 
 ## Step 1B - Batch mode: emit the verdict report table before merging anything
 
@@ -360,3 +472,14 @@ a different repo/user. It confirms `state == MERGED` via GraphQL at the end.
     reply MUST carry the `l/message` Teams permalink for that PR's request post (from
     `teams-gardener-requests` `report_now.json`), so the reader can jump straight to the exact thread.
     Dropping the thread link is a defect, not a summarization convenience.
+11. **`--fails` needs a colon in every entry.** Each `--fails 'Job name: reason'` is split on the first
+    `:` (job before, reason after). A colon-less entry silently loses its reason and renders a blank or
+    duplicated bullet in the rationale comment. `garden_bypass_single.py` now fails fast on a malformed
+    `--fails` before any network call - fix the entry and re-run. (PowerShell variant: `-Fails` is a
+    single `[string[]]` - pass ONE comma-separated array, never repeated flags.)
+12. **New-gate / ruleset lag reads as a false red.** After the `TheRock CI Summary -> Multi-Arch CI
+    Summary` rename (2026-09), a recently-based rocm-systems PR can show `BLOCKED` while green on
+    `Multi-Arch CI Summary`, because the ruleset still *requires* the retired `TheRock CI Summary`
+    context that never posts. That is a ruleset lag (owner must repoint the ruleset), not a real red -
+    read `Multi-Arch CI Summary` as the gate. Always enumerate the live ruleset AND match the check the
+    CI actually posts, rather than trusting a hardcoded gate name.
