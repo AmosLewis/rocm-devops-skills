@@ -1,7 +1,7 @@
 # Gardener handover - Wk-36 (Mon 2026-08-24 -> Mon 2026-08-31) -> Wk-37
 
 **Repos:** ROCm/rocm-systems, ROCm/rocm-libraries
-**Gardener:** @amd-justchen
+**Gardener:** @your-github-handle
 **Required sets (re-enumerated this rotation):** rocm-systems `develop` = `TheRock CI Summary` +
 `HIP NVIDIA CI Summary`; rocm-libraries `develop` = `TheRock CI Summary` + `Math CI Summary` +
 `pre-commit`. Everything else (Core, Code Coverage, rocprofiler-*, component CIs, docs, nightlies) is
@@ -59,7 +59,7 @@ Produced by `gardener/scripts/merge_stats.py` (GraphQL `mergedBy`, window `2026-
 "Manual/override" = merged **by the gardener account** (`gh pr merge --admin` or the CDP stacked
 bypass); "not overridden" = auto-merge or a maintainer squash.
 
-| Repo | Merged in window | Manual / override (by @amd-justchen) | Not overridden | Override share |
+| Repo | Merged in window | Manual / override (by @your-github-handle) | Not overridden | Override share |
 | --- | --- | --- | --- | --- |
 | ROCm/rocm-systems | 271 | **45** | 226 | 16.6% |
 | ROCm/rocm-libraries | 265 | **6** | 259 | 2.3% |
