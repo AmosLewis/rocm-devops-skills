@@ -41,10 +41,11 @@ change — re-enumerate rather than trusting the tables below.
 
 ```bash
 REPO=ROCm/rocm-libraries
-PRS="10245 10180 10016 10372 7228 9785 10499 9615 9642 9293 10250 10588 10507"
+PRS=(10245 10180 10016 10372 7228 9785 10499 9615 9642 9293 10250 10588 10507)
 
 # 1. current state of everything you touched (note mergeCommit + autoMergeRequest)
-for p in $PRS; do
+#    array form: a plain string is not split into words under zsh
+for p in "${PRS[@]}"; do
   gh pr view $p --repo $REPO --json number,state,isDraft,mergedAt,mergeCommit,\
 mergeStateStatus,reviewDecision,headRefOid,autoMergeRequest
 done
@@ -89,12 +90,18 @@ classification. Most reds need no log read at all:
 | --- | --- | --- |
 | `Set up job` | Runner or action-download failure. Zero signal (typical during a GitHub incident) | No |
 | `Fetch sources` | Clone timeout / throttling. Zero signal | No |
+| `Checkout rocm-libraries repository for scripts` | Clone failure before the job's real work. Zero signal | No |
 | `Driver / GPU sanity check` | Died before any test ran. Zero signal | No |
 | `Run setup test environment workflow` | Environment provisioning. Zero signal | No |
 | `Run rocjitsu race check` | Known runtime-path issue — check whether the run predates the fix | No |
 | **`Build therock-artifacts and therock-dist`** | **Possibly real.** Open it | **Yes** |
+| **`Build stage`** (ASAN) | **Possibly real.** Open it | **Yes** |
 | **`Test`** | **Possibly real.** Open it | **Yes** |
+| `Output failed jobs` / `Evaluate workflow results` | Summary job; it only repeats other jobs' reds | No — classify those jobs instead |
 | No failed step, but `conclusion: failure` | The job was **cancelled** by a sibling failure. Zero signal | No — check `.steps[].conclusion` for `cancelled` |
+
+An empty `steps` array on an old job means GitHub has dropped the step data, not that the job was
+cancelled. Fall back to the job name and to your own notes from that week.
 
 Only when you land in the bold rows:
 
@@ -210,6 +217,29 @@ Two rules that carry most of the value:
 - **"Do nothing" must be an explicit numbered action with its consequence spelled out.** A
   conscientious successor will otherwise touch an auto-merge-armed PR and break it.
 
+### 2.3 State every promise you made in public
+
+If you told a reporter *"if only known infra reds remain by EOD Thursday I'll honour your bypass
+offer"*, that commitment transfers with the rotation. An unrecorded promise becomes a broken one.
+Give the successor the deadline, the condition, and the exact command including the
+`ISSUE ID:` / `JIRA ID:` line for the squash body.
+
+### 2.4 Re-enumerate the required set for **every** repo you covered
+
+```bash
+for r in rocm-libraries rocm-systems; do
+  echo "== $r"; gh api repos/ROCm/$r/rulesets --jq '.[] | "\(.id) \(.name) \(.target)"'
+done
+gh api repos/ROCm/<repo>/rulesets/<ID> \
+  --jq '[.rules[] | select(.type=="required_status_checks")
+         | .parameters.required_status_checks[].context]'
+```
+
+No admin rights needed. The sets genuinely differ per repo while the two `docs/gardening.md` files
+differ by only ~6 lines, which makes them very easy to conflate — the exact trap a single-gardener
+rotation creates. Naming a non-required check as "the blocker" is the most common way to have to
+retract in public.
+
 ### 2.5 Merge statistics - manual/override vs. not-overridden, and the unmerged backlog
 
 The handover should carry two counts per repo (the stats Laura used to produce by hand):
@@ -235,29 +265,6 @@ Note the manual count is **every** merge from the gardener account (admin overri
 gardener-driven squash such as a bump-PR sweep) - a superset of the override *requests* in your Open
 PRs table. Call that out so the two numbers are not read as contradictory. Measured Wk-36:
 rocm-systems 271 merged / 45 manual (16.6%) / 226 not overridden; rocm-libraries 265 / 6 (2.3%) / 259.
-
-### 2.3 State every promise you made in public
-
-If you told a reporter *"if only known infra reds remain by EOD Thursday I'll honour your bypass
-offer"*, that commitment transfers with the rotation. An unrecorded promise becomes a broken one.
-Give the successor the deadline, the condition, and the exact command including the
-`ISSUE ID:` / `JIRA ID:` line for the squash body.
-
-### 2.4 Re-enumerate the required set for **every** repo you covered
-
-```bash
-for r in rocm-libraries rocm-systems; do
-  echo "== $r"; gh api repos/ROCm/$r/rulesets --jq '.[] | "\(.id) \(.name) \(.target)"'
-done
-gh api repos/ROCm/<repo>/rulesets/<ID> \
-  --jq '[.rules[] | select(.type=="required_status_checks")
-         | .parameters.required_status_checks[].context]'
-```
-
-No admin rights needed. The sets genuinely differ per repo while the two `docs/gardening.md` files
-differ by only ~6 lines, which makes them very easy to conflate — the exact trap a single-gardener
-rotation creates. Naming a non-required check as "the blocker" is the most common way to have to
-retract in public.
 
 ---
 

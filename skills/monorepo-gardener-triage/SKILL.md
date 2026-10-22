@@ -112,13 +112,16 @@ gh api repos/$REPO/issues/$PR/timeline --paginate \
 
 ## 1. The required set differs per repo *and* per target branch
 
-Verified 2026-08-10 — enumerate rather than trust this table, ruleset contents change:
+Verified 2026-10-22 — enumerate rather than trust this table, ruleset contents change:
 
 | Repo | Branch (ruleset) | Required contexts |
 | --- | --- | --- |
-| rocm-libraries | `develop` (5167088) | `TheRock CI Summary`, `Math CI Summary`, `pre-commit` |
-| rocm-systems | `develop` (9297053) | `TheRock CI Summary`, `HIP NVIDIA CI Summary` — **no `pre-commit`, no Math CI** |
-| rocm-systems | `rocprofiler-compute` (16665354) | `TheRock CI Summary` only |
+| rocm-libraries | `develop` (5167088) | `Math CI Summary`, `pre-commit`, `Multi-Arch CI Summary`, `Component CI Summary` |
+| rocm-systems | `develop` (9297053) | `HIP NVIDIA CI Summary`, `Multi-Arch CI Summary`, `RCCL PR gate` — **no `pre-commit`, no Math CI** |
+| rocm-systems | `rocprofiler-compute-develop` (16665354) | same three as `develop` |
+
+`TheRock CI Summary` was required on both repos until at least 2026-08; it no longer is. A red there
+today is advisory unless the ruleset query says otherwise.
 
 The two `gardening.md` files differ by about six lines, which makes it very easy to assume the gates
 match. They do not. Run the `rulesets` query on every repo you take over.
@@ -141,7 +144,7 @@ non-admins, and `collaborators/<me>/permission` reports only `write`. Judge your
 history (`gh pr view <PR> --json mergedBy` on something you pushed through), not from those fields.
 
 **Everything outside the required set is advisory**: packaging install lanes, coverage thresholds,
-`Multi-Arch CI Summary`, `codecov/project/*`. Worth an issue, never worth a bypass.
+`TheRock CI Summary`, `codecov/project/*`. Worth an issue, never worth a bypass.
 
 ---
 
@@ -311,7 +314,7 @@ Three artifacts, and keeping them separate is what stops the tracker from growin
 2. **A `| Red check | Keypoint |` table.** One row per red; keypoint is one clause of mechanism plus
    the known-issue link. **Never prose out a list of reds** — a semicolon-joined list is the single
    most common way these replies become unreadable. Collapse everything advisory into one row:
-   *"sles16, `Multi-Arch CI Summary`, `codecov/project/*` — outside the required set"*.
+   *"sles16, `TheRock CI Summary`, `codecov/project/*` — outside the required set"*.
 3. **At most one closing sentence** naming a coverage gap you are choosing to state. Skip it when
    there is none.
 

@@ -229,10 +229,13 @@ gh api "repos/$REPO/contents/.github/CODEOWNERS?ref=develop" --jq '.content' \
 gh api orgs/ROCm/teams/<team-slug>/members --paginate --jq '.[].login'   # read:org is enough
 ```
 
-Known rocm-libraries trap: the whole `/.github/` directory belongs to one reviewers team, so a PR
-touching only `.github/workflows/*` cannot be unblocked by the component's own team lead, however
-relevant that lead is to the change. Use `orgs/.../teams/<slug>/members` and grep it yourself; the
-`memberships/<user>` endpoint is the one that demands `admin:org`.
+Known rocm-libraries trap: `/.github/` falls back to `rocm-libraries-reviewers`, but since
+ROCm/rocm-libraries#13349 (2026-10-19) many workflow files have their own owners (`*therock*.yml` →
+`therock-infra-write` + `rocm-math-lib-build-infra`, `*hipblaslt*.yml` → `hipblaslt-reviewers`, …).
+CODEOWNERS uses the **last matching line**, so read the whole `/.github/` block, not its first line.
+For a PR merged earlier, read CODEOWNERS at that PR's merge commit (`?ref=<sha>`), not `develop`.
+Use `orgs/.../teams/<slug>/members` and grep it yourself; the `memberships/<user>` endpoint is the
+one that demands `admin:org`.
 
 **Do not @-mention the whole team.** Name one or two people, and say why:
 
