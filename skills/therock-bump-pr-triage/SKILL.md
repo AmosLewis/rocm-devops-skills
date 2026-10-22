@@ -1,7 +1,7 @@
 ---
 name: therock-bump-pr-triage
 description: >-
-  Triages the twice-daily assistant-librarian bump pull requests in
+  Triages the twice-daily bot bump pull requests in
   ROCm/TheRock (titles "Bump rocm-libraries from ..." and "Bump
   rocm-systems from ..."). Maps each failed Linux and Windows job to an
   existing issue or a new issue draft, then writes a GitHub-comment
@@ -12,7 +12,8 @@ description: >-
 
 # Skill: Bump PR Gardener Triage
 
-Daily bump PRs are created by bot: https://github.com/apps/assistant-librarian (every ~12 hours).
+Daily bump PRs are created by two bots, about every 12 hours: rocm-libraries by
+https://github.com/apps/assistant-librarian, rocm-systems by https://github.com/apps/systems-assistant.
 
 - **rocm-libraries** PR title format: `Bump rocm-libraries from <START_COMMIT> to <END_COMMIT>`
 - **rocm-systems** PR title format: `Bump rocm-systems from <START_COMMIT> to <END_COMMIT>`
@@ -37,7 +38,7 @@ Check the master tracking page for all historically filed issues:
 
 This page has a table with every filed issue, its component, responsible engineer, and status. Cross-reference it with your Teams message — some issues may have been resolved since the last report.
 
-If you have the **Atlassian MCP plugin** configured (see README), you can query this page directly from Cursor or Claude:
+If you have the **Atlassian MCP plugin** configured (see the repo README), you can query this page directly from Cursor or Claude:
 
 ```
 Use the Atlassian MCP plugin to read the Confluence page:
@@ -70,7 +71,7 @@ If `gh pr checks` doesn't give enough detail, find the run ID from the PR's chec
 Save the failed job list and tracker to a working directory, e.g.:
 
 ```
-<your-workspace>/triage/week<WW>/MMDD/<r-l PR>-<r-s PR>.md
+<your-workspace>/triage/week<WW>/MMDD/<lower PR>-<higher PR>.md
 ```
 
 The user may also directly provide a list of failed job URLs — in that case skip the auto-discovery step.
@@ -107,19 +108,19 @@ gh api -H "Accept: application/vnd.github+json" \
 
 Always load the **previous bump pair's tracker** and the [Confluence Bump Failure Tracking page](https://amd.atlassian.net/wiki/spaces/MLSE/pages/1621581386/Bump+Failure+Tracking+by+Component+and+Owner) to check if each failure matches an existing filed issue.
 
-**Common existing issues (Windows gfx110X, as of late Apr 2026):**
+**Common existing issues (Windows gfx110X, recorded late Apr 2026; state checked 2026-10-22).** Closed rows are kept as examples of each failure pattern. If a new failure matches a closed issue, the problem came back: treat it as a new failure and link the closed issue, do not mark it Existing.
 
-| Component | Issue | Pattern |
-|-----------|-------|---------|
-| hipBLAS | [rocm-libraries#6620](https://github.com/ROCm/rocm-libraries/issues/6620) | `gemm_bad_arg`, `gemm_ex_bad_arg`, `syrk_ex` failures |
-| hipBLASLt | [rocm-libraries#6726](https://github.com/ROCm/rocm-libraries/issues/6726) | 1717 FAILED / SEH 0xc0000005 |
-| hipSOLVER | [rocm-libraries#6730](https://github.com/ROCm/rocm-libraries/issues/6730) | GETRF numerical accuracy (`testing_getrf.hpp:728`) |
-| MIOpen (Win) | [rocm-libraries#6733](https://github.com/ROCm/rocm-libraries/issues/6733) | `ImplicitGemm3DGroup{Fwd,Bwd,Wrw}Xdlops` |
-| rocWMMA | [rocm-libraries#6707](https://github.com/ROCm/rocm-libraries/issues/6707) | `gemm_*-validate` / `rocblas_status_internal_error` / Linux timeout >60m |
-| libhipcxx_hipcc | [TheRock#4617](https://github.com/ROCm/TheRock/issues/4617) | `offload-arch` returns `None` → `CMAKE_HIP_ARCHITECTURES=None` |
-| rocsolver | [rocm-libraries#6708](https://github.com/ROCm/rocm-libraries/issues/6708) | LAPACK GETRI shard timeout (~40 min) |
-| MIOpen (Linux) | [rocm-systems#5430](https://github.com/ROCm/rocm-systems/issues/5430) | HIPRTC JIT ambiguous `__habs`/`hsqrt`/`__hisnan`, `reduce_custom_fp32_fp16` |
-| hip-tests ROCR (Win, xfail) | [TheRock#3587](https://github.com/ROCm/TheRock/issues/3587) | Windows ROCR hip-tests transitional — jobs tagged `(xfail)`, still link the issue |
+| Component | Issue | Pattern | State |
+|-----------|-------|---------|-------|
+| hipBLAS | [rocm-libraries#6620](https://github.com/ROCm/rocm-libraries/issues/6620) | `gemm_bad_arg`, `gemm_ex_bad_arg`, `syrk_ex` failures | closed 2026-06 |
+| hipBLASLt | [rocm-libraries#6726](https://github.com/ROCm/rocm-libraries/issues/6726) | 1717 FAILED / SEH 0xc0000005 | closed 2026-06 |
+| hipSOLVER | [rocm-libraries#6730](https://github.com/ROCm/rocm-libraries/issues/6730) | GETRF numerical accuracy (`testing_getrf.hpp:728`) | closed 2026-06 |
+| MIOpen (Win) | [rocm-libraries#6733](https://github.com/ROCm/rocm-libraries/issues/6733) | `ImplicitGemm3DGroup{Fwd,Bwd,Wrw}Xdlops` | closed 2026-05 |
+| rocWMMA | [rocm-libraries#6707](https://github.com/ROCm/rocm-libraries/issues/6707) | `gemm_*-validate` / `rocblas_status_internal_error` / Linux timeout >60m | closed 2026-08 |
+| libhipcxx_hipcc | [TheRock#4617](https://github.com/ROCm/TheRock/issues/4617) | `offload-arch` returns `None` → `CMAKE_HIP_ARCHITECTURES=None` | closed 2026-07 |
+| rocsolver | [rocm-libraries#6708](https://github.com/ROCm/rocm-libraries/issues/6708) | LAPACK GETRI shard timeout (~40 min) | closed 2026-06 |
+| MIOpen (Linux) | [rocm-systems#5430](https://github.com/ROCm/rocm-systems/issues/5430) | HIPRTC JIT ambiguous `__habs`/`hsqrt`/`__hisnan`, `reduce_custom_fp32_fp16` | closed 2026-06 |
+| hip-tests ROCR (Win, xfail) | [TheRock#3587](https://github.com/ROCm/TheRock/issues/3587) | Windows ROCR hip-tests transitional — jobs tagged `(xfail)`, still link the issue | **open** |
 
 **Important:** Both r-l and r-s PRs run **Linux AND Windows** tests in their own workflow runs. Always check both platforms on both PRs. The Windows failures will typically be the same existing issues on both PRs — list them under each PR section in the Teams message.
 
@@ -140,11 +141,11 @@ Include:
 - Reproduce command (from the CI footer `reproduce_test_failure.py` block)
 - Notes: comparison with prior issues
 
-**If the failure matches an existing issue:** do NOT create a new file. Mark it as **Existing** in the tracker with the issue link. Just comment on the existing issue with the new job URL if needed.
+**If the failure matches an existing issue:** do NOT create a new file. Mark it as **Existing** in the tracker with the issue link. If the issue needs the new job URL, draft the comment for a human to post; do not post it yourself.
 
 ### 1.5 Create/update tracker file
 
-**Always** create `<r-l PR>-<r-s PR>.md` — this is the primary triage artifact. It must be **GitHub-comment-ready** so you can copy-paste it directly into PR comments.
+**Always** create `<lower PR>-<higher PR>.md` (the pair's two PR numbers, smaller first, e.g. `4839-4840`) — this is the primary triage artifact. It must be **GitHub-comment-ready** so you can copy-paste it directly into PR comments.
 
 Include a table per platform with full details:
 
@@ -167,7 +168,7 @@ Status should be one of:
 **Always** save the Teams triage update to:
 
 ```
-<your-workspace>/triage/week<WW>/MMDD/<r-l PR>-<r-s PR>-teams.md
+<your-workspace>/triage/week<WW>/MMDD/<lower PR>-<higher PR>-teams.md
 ```
 
 This is the copy-paste message for the **Gardening-Bump-PR** Teams channel.
