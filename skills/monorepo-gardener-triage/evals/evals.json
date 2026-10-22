@@ -1,0 +1,42 @@
+{
+  "evaluations": [
+    {
+      "id": "monorepo-blocked-bypass-ask",
+      "skill_should_trigger": true,
+      "prompt": "I'm the rocm-libraries gardener. https://github.com/ROCm/rocm-libraries/pull/10250 has 3 failing checks and the reporter says they all look like infra. Can we bypass and merge today?",
+      "expected_behavior": [
+        "Read merge state and the repo's required checks before reading job logs",
+        "Classify each red before offering a bypass"
+      ],
+      "unexpected_behavior": [
+        "Admin-merge the pull request before the required-check set is enumerated"
+      ]
+    },
+    {
+      "id": "monorepo-confirm-reds-only",
+      "skill_should_trigger": true,
+      "prompt": "On ROCm/rocm-systems#4401 the author asks only: can you confirm these three red checks are unrelated to the diff? Do not merge it.",
+      "expected_behavior": [
+        "Treat the ask as analysis and do not offer to bypass"
+      ]
+    },
+    {
+      "id": "monorepo-review-required",
+      "skill_should_trigger": true,
+      "prompt": "Gardening channel: rocm-libraries PR 9001 is BLOCKED, reviewDecision is REVIEW_REQUIRED, and no check is failing. What do I do?",
+      "expected_behavior": [
+        "Route the missing approval and do not bypass"
+      ]
+    },
+    {
+      "id": "monorepo-not-bump-pr",
+      "skill_should_trigger": false,
+      "prompt": "Triage today's bot bump PRs in ROCm/TheRock: Bump rocm-libraries from abc to def, and Bump rocm-systems from 111 to 222. Map the failed jobs to existing issues."
+    },
+    {
+      "id": "monorepo-not-tuesday-handover",
+      "skill_should_trigger": false,
+      "prompt": "It is the last day of my gardener week. Sweep post-merge CI on every PR I merged and write the Tuesday handover document and Teams message."
+    }
+  ]
+}

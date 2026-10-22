@@ -1,0 +1,43 @@
+{
+  "evaluations": [
+    {
+      "id": "handover-last-day-sweep",
+      "skill_should_trigger": true,
+      "prompt": "Last day of my rocm-libraries gardener week. Sweep post-merge CI on every PR I merged this week and write the handover doc plus the Teams message.",
+      "expected_behavior": [
+        "Re-read live pull request state before writing the handover",
+        "Treat a merge commit with zero workflow runs as a finding",
+        "Keep the Teams message in phrases, with a bold verb first and no table"
+      ],
+      "unexpected_behavior": [
+        "Leave a private note path or an internal-only link in the handover"
+      ]
+    },
+    {
+      "id": "handover-automerge-armed",
+      "skill_should_trigger": true,
+      "prompt": "While writing the gardener handover I see an open PR whose autoMergeRequest is now set. What action do I hand to the next gardener?",
+      "expected_behavior": [
+        "Tell the next gardener to leave that pull request alone"
+      ]
+    },
+    {
+      "id": "handover-mirror-flag",
+      "skill_should_trigger": true,
+      "prompt": "For the handover, should I open a follow-up to confirm the standalone mirror of a component I merged?",
+      "expected_behavior": [
+        "Check auto_subtree_push before opening a mirror item"
+      ]
+    },
+    {
+      "id": "handover-not-one-pr",
+      "skill_should_trigger": false,
+      "prompt": "Please classify the failing checks on https://github.com/ROCm/rocm-libraries/pull/10250. The reporter wants to know if they are infra."
+    },
+    {
+      "id": "handover-not-bump",
+      "skill_should_trigger": false,
+      "prompt": "Map the failed jobs on today's ROCm/TheRock bump pull requests and post the bump tracker to the Gardening-Bump-PR channel."
+    }
+  ]
+}

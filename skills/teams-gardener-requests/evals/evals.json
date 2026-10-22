@@ -1,0 +1,41 @@
+{
+  "evaluations": [
+    {
+      "id": "teams-pull-open-asks",
+      "skill_should_trigger": true,
+      "prompt": "Pull the current merge and override requests from the Gardening - rocm-libraries and Gardening - rocm-systems Teams channels. I want live PR state and a link back to each Teams message.",
+      "expected_behavior": [
+        "Run the pull script and keep the Teams message permalink on every row"
+      ],
+      "unexpected_behavior": [
+        "Merge, comment, or post to GitHub or Teams"
+      ]
+    },
+    {
+      "id": "teams-mention-flag",
+      "skill_should_trigger": true,
+      "prompt": "Refresh the gardening Teams channels for the last 120 hours and flag posts that @-mention me.",
+      "expected_behavior": [
+        "Pass the mention through to the pull and surface tagged rows first"
+      ]
+    },
+    {
+      "id": "teams-merge-only",
+      "skill_should_trigger": true,
+      "prompt": "From the gardening Teams channels, show only the posts that are asking for a merge or an override.",
+      "expected_behavior": [
+        "Use the merge-only filter and still keep each Teams permalink"
+      ]
+    },
+    {
+      "id": "teams-not-execute-bypass",
+      "skill_should_trigger": false,
+      "prompt": "Override and admin-merge https://github.com/ROCm/rocm-systems/pull/10803. The hip-tests failures are known infra. Post the rationale and reply Merged in Teams."
+    },
+    {
+      "id": "teams-not-bump-triage",
+      "skill_should_trigger": false,
+      "prompt": "Triage the failed Windows jobs on the ROCm/TheRock rocm-libraries bump pull request and draft issues for anything new."
+    }
+  ]
+}

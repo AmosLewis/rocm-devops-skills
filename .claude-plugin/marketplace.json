@@ -1,0 +1,24 @@
+{
+  "name": "rocm-devops-skills",
+  "owner": {
+    "name": "ROCm DevOps"
+  },
+  "metadata": {
+    "description": "Agent Skills for ROCm DevOps gardener workflows.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "rocm-devops-skills",
+      "source": "./",
+      "version": "0.1.0",
+      "strict": false,
+      "skills": [
+        "./skills/monorepo-gardener-triage",
+        "./skills/therock-bump-pr-triage",
+        "./skills/gardener-rotation-handover"
+      ],
+      "description": "Gardener skills for ROCm: classify blocked rocm-libraries and rocm-systems PRs, triage TheRock bump PRs, and write the end-of-rotation handover."
+    }
+  ]
+}

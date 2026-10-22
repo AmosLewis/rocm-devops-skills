@@ -1,66 +1,76 @@
 # ROCm DevOps Skills
 
-AI-assisted skills and commands for ROCm DevOps workflows. Clone this repo and plug into **Cursor** or **Claude CLI** for automated CI triage, issue tracking, and team reporting.
+Agent skills for ROCm DevOps. Each skill is one folder an agent can discover on its own. Cursor commands under [`.cursor/commands/`](.cursor/commands/) are optional shortcuts.
 
-## Available Skills
+The layout matches the [Agent Skills](https://github.com/amd/skills) format used by [amd/skills](https://github.com/amd/skills) and [TheRock skills](https://github.com/ROCm/TheRock/tree/main/skills): `skills/<name>/SKILL.md`, with `name` equal to the directory name.
 
-| Skill | File | Command | Use it when |
-|-------|------|---------|-------------|
-| **Monorepo Gardener** | [`gardener/monorepo_gardener_skill.md`](gardener/monorepo_gardener_skill.md) | `/gr` | You are on the **rocm-libraries / rocm-systems** gardener rotation and someone says "my PR is blocked" or asks for a bypass |
-| **Bump PR Gardener** | [`gardener/bumppr_skill.md`](gardener/bumppr_skill.md) | `/tr` | You are triaging the twice-daily **bot bump PRs** in ROCm/TheRock |
-| **Rotation Handover** | [`gardener/handover_skill.md`](gardener/handover_skill.md) | `/ho` | It is the **last day of your gardener week** and you need the post-merge sweep, the handover doc and the Teams message |
-| **Teams Gardener Requests** | [`gardener/teams_gardener_requests_skill.md`](gardener/teams_gardener_requests_skill.md) | `/tgr` | You want to **auto-pull merge/override/help requests** from the Teams gardening channels (via Chrome CDP + IndexedDB) into a table with PR state and message permalinks |
-| **Process Merge Override** | [`gardener/process_merge_override_skill.md`](gardener/process_merge_override_skill.md) | `/pmo` | Someone asks you to **override / force-merge / bypass** a `BLOCKED` PR whose only required-gate reds are known infra flakes - this takes the decision through to a verified merge, a posted rationale, and a Teams reply |
+## Catalog
 
-The first two cover the same rotation from different ends: `/gr` is per-request triage on human PRs
-and post-submit reds, `/tr` is the scheduled bump-PR sweep. `/ho` closes the week: it sweeps
-post-merge CI on everything you merged, then produces the handoff artifacts in a fixed shape so the
-next gardener can start from the same baseline every rotation. `/tgr` acquires the week's asks from
-Teams; `/pmo` is the execution end of `/gr` - once a blocked PR is triaged as infra-only, `/pmo`
-verifies the preconditions, merges past the failing required gate (single or stacked), sweeps the
-merge commit, and hands back the Teams reply. A worked rotation, including the two build-break
-mistakes that produced the `/pmo` "Hard rule", is in
-[`gardener/examples/week36-override-rotation/`](gardener/examples/week36-override-rotation/README.md).
+| Skill | Command | Use it when |
+| --- | --- | --- |
+| [monorepo-gardener-triage](skills/monorepo-gardener-triage/SKILL.md) | `/gr` | A human PR on **rocm-libraries** or **rocm-systems** is blocked, or someone asks for a bypass. Classify. Do not execute the merge. |
+| [therock-bump-pr-triage](skills/therock-bump-pr-triage/SKILL.md) | `/tr` | The twice-daily **bot bump PRs** in ROCm/TheRock. |
+| [gardener-rotation-handover](skills/gardener-rotation-handover/SKILL.md) | `/ho` | Last day of the gardener week. Post-merge sweep, handover doc, Teams message. |
+| [teams-gardener-requests](skills/teams-gardener-requests/SKILL.md) | `/tgr` | Pull merge / override / help asks from the gardening Teams channels. Read-only. |
+| [process-merge-override](skills/process-merge-override/SKILL.md) | `/pmo` | Execute an override after triage says the required-gate reds are known infra. |
 
-The normative policy for the role lives in
-each repo's own doc and wins over anything here —
-[rocm-libraries](https://github.com/ROCm/rocm-libraries/blob/develop/docs/gardening.md),
-[rocm-systems](https://github.com/ROCm/rocm-systems/blob/develop/docs/gardening.md),
+`/gr` classifies. `/pmo` merges. `/tgr` only lists the asks. `/tr` is the bump-PR sweep. `/ho` closes the week.
+
+Policy in each repo wins over these skills:
+[rocm-libraries gardening](https://github.com/ROCm/rocm-libraries/blob/develop/docs/gardening.md),
+[rocm-systems gardening](https://github.com/ROCm/rocm-systems/blob/develop/docs/gardening.md),
 [RFC0002](https://github.com/ROCm/TheRock/blob/main/docs/rfcs/RFC0002-MonoRepo-Gardener-Rotations.md).
-These skill files are the executable layer: the exact `gh` recipes, the traps that produce wrong
-verdicts, and the shape of the artifacts you hand back.
 
-## Quick Start
+`monorepo-gardener-triage` keeps the per-request path in `SKILL.md` and the long proofs in [`reference.md`](skills/monorepo-gardener-triage/reference.md), so the skill file stays within the 500-line body limit used by amd/skills.
 
-### Prerequisites
+## Install
 
-- [GitHub CLI (`gh`)](https://cli.github.com/) — authenticated with access to `ROCm/TheRock`,
-  `ROCm/rocm-libraries` and `ROCm/rocm-systems`. `read:org` scope is enough for everything in these
-  skills, including listing team members
-- [ripgrep (`rg`)](https://github.com/BurntSushi/ripgrep) — for fast log searching
-- `python3` — a few of the recipes pipe JSON through it
-- Either **Cursor IDE** or **Claude CLI** (or both)
+This repo is not in the amd/skills catalog, so `npx skills add amd/skills` does not install it.
+
+The same `SKILL.md` works in Cursor, Claude Code, and Codex. There is no per-agent copy.
+
+### As a plugin
+
+The repo ships plugin manifests in the same shape as amd/skills: [`.claude-plugin/`](.claude-plugin/marketplace.json), [`.cursor-plugin/`](.cursor-plugin/marketplace.json), [`.codex-plugin/`](.codex-plugin/plugin.json), and [`.agents/plugins/`](.agents/plugins/marketplace.json). In Claude Code:
+
+```text
+/plugin marketplace add AmosLewis/rocm-devops-skills
+```
+
+The plugin bundles the three triage and handover skills only. `teams-gardener-requests` needs a Teams token or a signed-in Chrome, and `process-merge-override` runs admin merges, so install those two by hand when you need them.
+
+### By hand
+
+Clone, then copy or symlink the skill folders you want:
 
 ```bash
 git clone https://github.com/AmosLewis/rocm-devops-skills.git
 cd rocm-devops-skills
 ```
 
-### Weekly Handoff (every Tuesday)
+| Agent | Skills directory |
+| --- | --- |
+| Cursor | `~/.cursor/skills/` or `<project>/.cursor/skills/` |
+| Claude Code | `~/.claude/skills/` or `<project>/.claude/skills/` |
+| Codex | `$HOME/.agents/skills` or `<repo>/.agents/skills` |
 
-**If you are handing the rotation over**, run [`/ho`](gardener/handover_skill.md) on your last day:
-sweep post-merge CI on every PR you merged, then generate the handover doc and Teams message. Two
-things people forget and both are expensive — a merge commit with **zero** workflow runs is a real
-finding (a dropped push event cannot be replayed, so no post-submit CI and no subrepo mirror will
-ever run for it), and any bypass you promised publicly transfers with the rotation.
+```bash
+ln -s "$PWD/skills/monorepo-gardener-triage" ~/.cursor/skills/monorepo-gardener-triage
+```
 
-**If you are taking the rotation over**, gather previous context **before** triaging.
+Open this repo as the Cursor workspace and the commands in `.cursor/commands/` (`/gr`, `/tr`, `/ho`, `/tgr`, `/pmo`) are available without copying. Each command tells the agent which `SKILL.md` to read.
 
-**Monorepo gardener (`/gr`)** — three things, in this order:
+### Prerequisites
 
-1. **Enumerate the required checks yourself**, for every repo you now cover. The sets differ between
-   `rocm-libraries` and `rocm-systems`, and the two `gardening.md` files differ by only about six
-   lines, which makes them easy to conflate.
+- [GitHub CLI (`gh`)](https://cli.github.com/), with access to `ROCm/TheRock`, `ROCm/rocm-libraries`, and `ROCm/rocm-systems`. `read:org` is enough to list team members.
+- [ripgrep (`rg`)](https://github.com/BurntSushi/ripgrep)
+- `python3`
+
+`teams-gardener-requests` and the stacked path in `process-merge-override` also need the Teams token or a signed-in Chrome remote-debugging port. Those skills state the exact prerequisite.
+
+### Taking the rotation
+
+1. Enumerate required checks per repo. The two `gardening.md` files are easy to mix up.
 
    ```bash
    gh api repos/ROCm/rocm-libraries/rulesets --jq '.[] | "\(.id) \(.name) \(.target)"'
@@ -69,252 +79,44 @@ ever run for it), and any bypass you promised publicly transfers with the rotati
             | .parameters.required_status_checks[].context]'
    ```
 
-2. **Inherit the known-issue baseline** from the previous gardener's tracker and the open
-   [gardener-labelled issues](https://github.com/ROCm/rocm-libraries/issues?q=is%3Aissue+state%3Aopen+label%3Agardener).
-   Remember that ROCm/TheRock issues frequently carry **no labels at all**, so always search by error
-   text across all three repos rather than by label.
-3. **Read the rotation table** on the internal Confluence page for the current gardener list, and note
-   who owns the SRE rotation this week — the fleet is theirs, the per-PR verdict is yours.
-
-**Bump PR gardener (`/tr`)** — two sources:
-
-1. **Teams**: Go to the **Gardening-Bump-PR** channel, copy the last `Bump PR Tracker` message from the previous gardener. Save it as your reference for known issues.
-2. **Confluence**: Check the master issue tracking page — [Bump Failure Tracking by Component and Owner](https://amd.atlassian.net/wiki/spaces/MLSE/pages/1621581386/Bump+Failure+Tracking+by+Component+and+Owner). Cross-reference with Teams to see which issues are resolved vs still open.
-
-### Optional: Atlassian MCP Plugin (Confluence access from AI)
-
-If you want the AI agent to directly query the Confluence tracking page, set up the [Atlassian MCP server](https://www.npmjs.com/package/@anthropic/atlassian-mcp-server):
-
-**For Cursor** — add to `.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "atlassian": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/atlassian-mcp-server"],
-      "env": {
-        "ATLASSIAN_SITE_URL": "https://amd.atlassian.net",
-        "ATLASSIAN_USER_EMAIL": "<your-email>",
-        "ATLASSIAN_API_TOKEN": "<your-token>"
-      }
-    }
-  }
-}
-```
-
-**For Claude CLI** — add to `~/.claude/mcp.json` with the same config.
-
-Generate your Atlassian API token at: https://id.atlassian.com/manage-profile/security/api-tokens
-
-Once configured, the AI can directly read and update the Confluence tracking page during triage.
-
----
-
-## Usage: Cursor IDE
-
-### Option A: Custom commands (`/gr`, `/tr`)
-
-1. Copy the command files into your Cursor workspace:
-
-```bash
-mkdir -p <your-project>/.cursor/commands
-cp gardener/commands/gr.md <your-project>/.cursor/commands/gr.md   # monorepo gardener
-cp gardener/commands/tr.md <your-project>/.cursor/commands/tr.md   # bump PR triage
-cp gardener/commands/ho.md <your-project>/.cursor/commands/ho.md   # end-of-rotation handover
-cp gardener/commands/tgr.md <your-project>/.cursor/commands/tgr.md # teams gardener requests pull
-```
-
-2. Copy the skill files somewhere Cursor can reference them:
-
-```bash
-mkdir -p <your-project>/skills/gardener
-cp gardener/monorepo_gardener_skill.md <your-project>/skills/gardener/
-cp gardener/bumppr_skill.md            <your-project>/skills/gardener/
-cp gardener/handover_skill.md          <your-project>/skills/gardener/
-```
-
-3. Update the `Context:` line in each command to point at your skill path:
-
-```markdown
-Context: @skills/gardener/monorepo_gardener_skill.md
-```
-
-4. In Cursor chat, type:
-
-```
-/gr https://github.com/ROCm/rocm-libraries/pull/10250
-Reporter: "3 checks failing, all look like infra. Can you merge today? BKC cut-off."
-```
-
-Cursor reads the skill, enumerates the required checks, reads the merge state, classifies each red,
-and produces:
-- `MMDD-pr<PR>-respond.md` — the reply in its fixed three-part shape, ready to paste
-- `MMDD-pr<PR>-<topic>.md` — the triage note behind it (evidence, timings, log excerpts)
-- one new row in `tracker.md`
-
-Or, for the bot bump PRs:
-
-```
-/tr https://github.com/ROCm/TheRock/pull/4839 https://github.com/ROCm/TheRock/pull/4840
-```
-
-### Option B: Cursor Rules (always-on context)
-
-Add to `.cursor/rules/gardener.mdc`:
-
-```
----
-description: "Gardener triage workflows"
-globs: ["**/triage/**", "**/gardener/**"]
-alwaysApply: false
----
-
-@skills/gardener/monorepo_gardener_skill.md
-@skills/gardener/bumppr_skill.md
-```
-
-Then the skills are automatically loaded when you work in triage files.
-
----
-
-## Usage: Claude CLI
-
-Pick the skill file for the job — `gardener/monorepo_gardener_skill.md` for a blocked PR or bypass
-request, `gardener/bumppr_skill.md` for the bot bump PRs.
-
-### Option A: Pipe the skill as system prompt
-
-```bash
-cat gardener/monorepo_gardener_skill.md | claude --system-prompt - \
-  "PR blocked, reporter asks for a bypass: https://github.com/ROCm/rocm-libraries/pull/10250"
-```
-
-### Option B: Use as a CLAUDE.md project instruction
-
-1. Copy the skill into your working directory:
-
-```bash
-cp gardener/monorepo_gardener_skill.md ./CLAUDE.md
-```
-
-2. Run Claude CLI in that directory:
-
-```bash
-claude "Triage https://github.com/ROCm/rocm-libraries/pull/10250 — reporter wants a bypass today"
-```
-
-Claude will automatically read `CLAUDE.md` as project context.
-
-### Option C: Direct prompt with file reference
-
-```bash
-claude --file gardener/bumppr_skill.md \
-  "Triage these bump PRs: https://github.com/ROCm/TheRock/pull/4839"
-```
-
-### Shell aliases
-
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-alias gr='claude --file ~/rocm-devops-skills/gardener/monorepo_gardener_skill.md'
-alias tr-bump='claude --file ~/rocm-devops-skills/gardener/bumppr_skill.md'
-
-# Usage:
-gr "PR blocked, reporter asks for a bypass: https://github.com/ROCm/rocm-libraries/pull/10250"
-tr-bump "Triage: https://github.com/ROCm/TheRock/pull/4839 https://github.com/ROCm/TheRock/pull/4840"
-```
-
----
-
-## What the triage produces
-
-**Monorepo gardener (`/gr`)** — three artifacts, deliberately separate so the tracker stays scannable:
-
-| Output | Format | Purpose |
-|--------|--------|---------|
-| `MMDD-pr<PR>-respond.md` | Conclusion sentence + `Red check \| Keypoint` table + one gap sentence, with the long form under `# Optional detail` | Paste into the PR thread or Teams as-is |
-| `MMDD-pr<PR>-<topic>.md` | Evidence, timestamps, log excerpts, the "why not just wait" argument | Quote only if someone pushes back |
-| `tracker.md` | One table row per PR, edited in place | Handoff and decision log |
-
-**Bump PR gardener (`/tr`)**:
-
-| Output | Format | Purpose |
-|--------|--------|---------|
-| `<r-l>-<r-s>.md` | Markdown table with Run/Job/Issue links | Copy into GitHub PR comments |
-| `<r-l>-<r-s>-teams.md` | Bullet list with issue links | Copy into Teams Gardening-Bump-PR channel |
-| `<PR>/<MMDD>-...-ci-issue.md` | GitHub issue template | Copy into GitHub "New Issue" (only for NEW failures) |
-
-**Rotation handover (`/ho`)**:
-
-| Output | Format | Purpose |
-|--------|--------|---------|
-| `MMDD-handover-week<N+1>.md` | Fixed sections: conclusion, do-these-first, open PRs, merged + post-merge verdict, issues filed, daily infra, lessons, details | Attach in the handoff channel. Only public links |
-| `MMDD-handover-week<N+1>-teams.md` | Phrases not sentences, bold verb first, no tables, ~350 words | Paste into the gardening channel |
+2. Inherit the known-issue baseline from the previous handover and from open issues. Search by error text. TheRock issues often have no labels.
+3. For bump PRs, start from the last Teams **Gardening-Bump-PR** tracker and the [Bump Failure Tracking](https://amd.atlassian.net/wiki/spaces/MLSE/pages/1621581386/Bump+Failure+Tracking+by+Component+and+Owner) page.
 
 ## Examples
 
-- [`gardener/examples/pr10250-bypass/`](gardener/examples/pr10250-bypass/) — a real bypass request on
-  `rocm-libraries` (Aug 10, 2026): the reply as sent, the detail held in reserve, and the tracker row
-  it produced. Shows why a re-run could not clear the reds and how the coverage gap was stated rather
-  than papered over.
-- [`gardener/examples/week32-handover/`](gardener/examples/week32-handover/) — a real end-of-rotation
-  handover (Aug 10, 2026) after a 15-request week. Shows the post-merge sweep finding two merge
-  commits that will never reach their standalone subrepo, and the Teams message in its final
-  341-word form.
-- [`gardener/examples/week17-0427/`](gardener/examples/week17-0427/) — a real bump PR triage
-  (Apr 27, 2026) with all 9 failed jobs mapped to existing issues, plus the Teams message.
+- [pr10250 bypass](skills/monorepo-gardener-triage/examples/pr10250-bypass/) — reply shape, held-back detail, tracker row.
+- [week 32 handover](skills/gardener-rotation-handover/examples/week32-handover/) — post-merge sweep and the Teams message.
+- [week 17 bump triage](skills/therock-bump-pr-triage/examples/week17-0427/) — failed jobs mapped to existing issues.
+- [week 36 override rotation](skills/process-merge-override/examples/week36-override-rotation/) — acquire, triage, merge, and the two build-break mistakes behind the Hard rule.
 
----
-
-## Repo Structure
+## Layout
 
 ```
-rocm-devops-skills/
-├── README.md                          # this file
-├── gardener/                          # gardener rotation skills
-│   ├── monorepo_gardener_skill.md     # rocm-libraries / rocm-systems PR + post-submit triage
-│   ├── bumppr_skill.md                # TheRock bump PR triage
-│   ├── handover_skill.md              # end-of-rotation sweep + handoff artifacts
-│   ├── teams_gardener_requests_skill.md  # auto-pull Teams gardening requests via CDP
-│   ├── scripts/
-│   │   ├── pull_gardener_requests.py  # CDP driver + gh enrichment + formatting
-│   │   └── pull_messages.js           # IndexedDB extractor injected into the Teams tab
-│   ├── commands/
-│   │   ├── gr.md                      # Cursor /gr command definition
-│   │   ├── tr.md                      # Cursor /tr command definition
-│   │   ├── ho.md                      # Cursor /ho command definition
-│   │   └── tgr.md                     # Cursor /tgr command definition
-│   └── examples/
-│       ├── pr10250-bypass/            # real bypass case
-│       │   ├── README.md
-│       │   ├── pr10250-respond.md
-│       │   └── tracker-row.md
-│       ├── week32-handover/           # real end-of-rotation handover
-│       │   ├── README.md
-│       │   └── handover-teams.md
-│       └── week17-0427/               # real bump PR triage
-│           ├── 4839-4840.md
-│           └── 4839-4840-teams.md
-└── <future-skills>/                   # other DevOps skills go here
+skills/<skill-name>/
+  SKILL.md            # frontmatter name matches the directory
+  skill-card.md       # description, owner, license
+  evals/evals.json    # routing and behavior cases
+  reference.md        # optional; linked from SKILL.md
+  scripts/            # optional
+  examples/           # optional
+.cursor/commands/     # optional Cursor shortcuts
+.claude-plugin/  .cursor-plugin/  .codex-plugin/  .agents/plugins/   # plugin manifests
 ```
 
 ## Contributing
 
-When adding a new skill:
-1. Create a folder under the root (e.g. `ci-monitoring/`, `release-mgmt/`), or add to an existing one
-   if it serves the same role
-2. Include a `<name>_skill.md` with the full workflow
-3. Include a `commands/` subfolder with any Cursor command `.md` files
-4. Include `examples/` with real-world output
-5. Update this README's "Available Skills" table
+1. Add `skills/<name>/` with `SKILL.md`, `skill-card.md`, and `evals/evals.json`.
+2. `name` is lowercase-with-hyphens, matches the directory, and the description says what the skill produces and when to use it.
+3. Keep the `SKILL.md` body at or under 500 lines. Put the long procedure in `reference.md` and link it from `SKILL.md`.
+4. `evals/evals.json` needs at least 3 cases with `skill_should_trigger: true` and 2 with `false`. A `false` case has only `id` and `prompt`. At least one `true` case grades behavior.
+5. Update the catalog table in this README. To bundle the skill in the plugin, add its path to the `skills` list in all three manifests (`.claude-plugin`, `.cursor-plugin`, `.codex-plugin`).
 
-Content rules, since this repo is public:
+Public-content rules:
 
-- No internal hostnames, credentials, or dashboard URLs. Use a placeholder and point at the internal
-  Confluence page instead — the internal Math CI host in `monorepo_gardener_skill.md` is the pattern
-  to follow.
-- No rosters mapping colleagues' real names to GitHub logins. Publish the *method* for finding the
-  right reviewer, not the answer.
-- Every claim about a gate, ruleset or required check should come with the command that verifies it,
-  because these change and a stale table is worse than no table.
+- No internal hostnames, credentials, or dashboard URLs. Use a placeholder and point at the internal page.
+- No roster that maps a colleague's name to a GitHub login. Publish the method for finding the reviewer.
+- Every claim about a gate or a required check ships with the command that re-checks it.
+
+## License
+
+[MIT](LICENSE). Skill cards name ROCm DevOps as the owner.

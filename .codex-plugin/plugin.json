@@ -1,0 +1,41 @@
+{
+  "name": "rocm-devops-skills",
+  "version": "0.1.0",
+  "description": "Agent Skills for ROCm DevOps gardener workflows.",
+  "author": {
+    "name": "ROCm DevOps"
+  },
+  "homepage": "https://github.com/AmosLewis/rocm-devops-skills",
+  "repository": "https://github.com/AmosLewis/rocm-devops-skills",
+  "license": "MIT",
+  "keywords": [
+    "rocm",
+    "therock",
+    "devops",
+    "gardener",
+    "ci",
+    "github-actions"
+  ],
+  "skills": [
+    "./skills/monorepo-gardener-triage",
+    "./skills/therock-bump-pr-triage",
+    "./skills/gardener-rotation-handover"
+  ],
+  "interface": {
+    "displayName": "ROCm DevOps",
+    "shortDescription": "ROCm gardener CI triage",
+    "longDescription": "Gardener skills for ROCm: classify blocked rocm-libraries and rocm-systems PRs, triage TheRock bump PRs, and write the end-of-rotation handover.",
+    "developerName": "ROCm DevOps",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/AmosLewis/rocm-devops-skills",
+    "defaultPrompt": [
+      "My rocm-libraries PR is blocked by red checks. Are they infra?",
+      "Triage today's TheRock bump PRs and write the Teams tracker",
+      "Write my gardener handover for this week"
+    ]
+  }
+}
