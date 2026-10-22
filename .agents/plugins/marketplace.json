@@ -1,0 +1,20 @@
+{
+  "name": "rocm-devops-skills",
+  "interface": {
+    "displayName": "ROCm DevOps Skills"
+  },
+  "plugins": [
+    {
+      "name": "rocm-devops-skills",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

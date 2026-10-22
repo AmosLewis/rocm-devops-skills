@@ -1,0 +1,43 @@
+{
+  "evaluations": [
+    {
+      "id": "override-one-blocked-pr",
+      "skill_should_trigger": true,
+      "prompt": "Process a merge override for https://github.com/ROCm/rocm-systems/pull/10803. The reporter says the hip-tests failures are unrelated and wants it merged.",
+      "expected_behavior": [
+        "Confirm the pull request is blocked on a required check and that approval is actually APPROVED",
+        "Read the failing build or compile log before treating a build-step failure as infra",
+        "Dry-run the rationale before merging"
+      ],
+      "unexpected_behavior": [
+        "Bypass a compile error because the requester said it was unrelated"
+      ]
+    },
+    {
+      "id": "override-batch-report-first",
+      "skill_should_trigger": true,
+      "prompt": "Process the open override requests in both gardening channels. There are several PRs. Tell me which ones can be merged.",
+      "expected_behavior": [
+        "Emit a verdict table with the PR link, the Teams permalink, and a can or cannot verdict before merging anything"
+      ]
+    },
+    {
+      "id": "override-stacked-pr",
+      "skill_should_trigger": true,
+      "prompt": "This blocked PR's base is another open PR, and a child PR is stacked on its head. How do I override-merge it?",
+      "expected_behavior": [
+        "Treat it as stacked and merge from the bottom of the stack upward"
+      ]
+    },
+    {
+      "id": "override-not-teams-list-only",
+      "skill_should_trigger": false,
+      "prompt": "Only list the open gardening requests from Teams with their message links. Do not merge or decide anything."
+    },
+    {
+      "id": "override-not-bump-pr",
+      "skill_should_trigger": false,
+      "prompt": "The twice-daily TheRock bump PRs failed on Windows gfx110X. Map each job to an existing issue and write the Teams bump tracker."
+    }
+  ]
+}

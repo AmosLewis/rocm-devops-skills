@@ -1,0 +1,42 @@
+{
+  "evaluations": [
+    {
+      "id": "bump-two-prs",
+      "skill_should_trigger": true,
+      "prompt": "Triage https://github.com/ROCm/TheRock/pull/4839 and https://github.com/ROCm/TheRock/pull/4840. They are the assistant-librarian bump PRs for rocm-systems and rocm-libraries. Write the tracker and the Teams Gardening-Bump-PR message.",
+      "expected_behavior": [
+        "Discover failed jobs on both Linux and Windows for both pull requests",
+        "Match a known failure to an existing issue instead of filing a new one"
+      ],
+      "unexpected_behavior": [
+        "File a new GitHub issue for a failure that already matches a tracked issue"
+      ]
+    },
+    {
+      "id": "bump-pending-jobs",
+      "skill_should_trigger": true,
+      "prompt": "The rocm-libraries bump PR in TheRock still has Windows test jobs in progress. How should the tracker record them?",
+      "expected_behavior": [
+        "Mark the unfinished jobs pending and say to recheck them"
+      ]
+    },
+    {
+      "id": "bump-new-failure-draft",
+      "skill_should_trigger": true,
+      "prompt": "This TheRock bump job failed with an error I cannot find in the previous bump tracker or in open issues. Draft the GitHub issue, do not file it yet.",
+      "expected_behavior": [
+        "Write an issue draft locally and mark the tracker row NEW"
+      ]
+    },
+    {
+      "id": "bump-not-human-pr",
+      "skill_should_trigger": false,
+      "prompt": "A developer says their human pull request https://github.com/ROCm/rocm-libraries/pull/10250 is blocked and asks for a gardener bypass. Classify the red checks."
+    },
+    {
+      "id": "bump-not-handover",
+      "skill_should_trigger": false,
+      "prompt": "Write the end-of-rotation gardener handover for week 32, including the post-merge sweep and the Teams handoff message."
+    }
+  ]
+}
